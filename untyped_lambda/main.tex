@@ -1,45 +1,26 @@
 \documentclass{article}
-\usepackage{hyperref,amsmath,amsthm,xcolor,graphicx}
+
+\usepackage{amsmath,amsthm,xcolor,graphicx}
+\usepackage[pdftex]{hyperref}
 
 
 
 
-\def\imp{\Rightarrow}
-\newcommand{\rstar}[1]{#1^*}
-\newcommand{\rplus}[1]{#1^+}
-\newcommand{\reqv}[1]{#1^\sim}
-\newcommand{\toplus}{\rplus\to}
-\newcommand{\tostar}{\rstar\to}
-\newcommand{\tobeta}{\to_\beta}
-\newcommand{\tobetaplus}{\to^+_\beta}
-\newcommand{\tobetastar}{\to^*_\beta}
-\newcommand{\tobetap}{\to_{p}}
-\newcommand{\tobetapplus}{\to^+_{p}}
-\newcommand{\tobetapstar}{\to^*_{p}}
-\newcommand{\betaeqv}{\sim_\beta}
-\newcommand{\toeqv}{\reqv\to}
-\newcommand{\neglow}{\neg\,}
-
-\newcommand{\indrule}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
-\newcommand{\ruleh}[2]{\begin{array}{c} #1 \\ \hline #2\end{array}}
-\newcommand{\rulev}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
 
 
+
+\begin{document}
+
+\input{common}
 
 \title{Lambda Calculus - Step by Step}
 \author{Helmut Brandl}
 \date{}
 
 
-
-\begin{document}
 \maketitle
 
 \tableofcontents
-
-\theoremstyle{definition} \newtheorem{definition}{Definition}[section]
-\theoremstyle{definition} \newtheorem{theorem}{Theorem}[section]
-\theoremstyle{definition} \newtheorem{lemma}{Lemma}[section]
 
 \section{Motivation}
 
@@ -237,8 +218,8 @@ applied to the term $b$) or an abstraction $\lambda x.a$.
 We use the convention that application is left associative i.e. $a b c$ is
 parsed as $(a b) c$.
 
-Nested lambda abstractions $\lambda x. \lambda y. \ldots . t$ are abbreviated
-as $\lambda x y \ldots . t$
+Nested lambda abstractions $\lambda x. \lambda y. \ldots . t$ are parsed as
+$\lambda x. (\lambda y. \ldots . t)$ and abbreviated as $\lambda x y \ldots . t$
 
 \begin{definition}
   The set of free variables $FV(t)$ of a lambda term $t$ is defined by
@@ -266,6 +247,50 @@ x.x$ and $\lambda y.y$ are equal.
    \end{cases}
    $$
 \end{definition}
+
+Note: The condition on the last line is no restriction because we can always
+rename the bound variable $y$ to a fresh variable $z$ different from $x$ and
+not occuring free in $t$ since there are infinitely many variables available.
+
+Two subsequent substitutions do not commute. The terms $a[x:=b][y:=c]$ and
+$a[y:=c][x:=b]$ are different in general even if $x \ne y$ and
+$x \notin FV(c)$. Reason: Neither $a[x:=b][y:=c]$ nor $a[y:=c]$ do contain any
+$y$. But $b$ might contain $y$ and therefore $a[y:=c][x:=b]$ might contain
+$y$. In order to make the swapping correct we have to do the substitution
+$b[y:=c]$ before substituting the variable $x$ by $b$.
+
+\begin{theorem} Substitution lemma: Let $x \ne y$ and $x \notin
+  FV(c)$. Then $$a[x:=b][y:=c] = a[y:=c]\big[x:= b[y:=c]\big]$$. Proof by
+  induction on the structure of $a$. We use the abbreviations
+  $$\begin{array}{ll}
+      s_1(a) &:= a[x:=b][y:=c] \\
+      s_2(a) &:= a[y:=c]\big[x:=b[y:=c]\big]
+    \end{array}$$.
+  \begin{enumerate}
+  \item $a$ is a variable. Lets call it $z$. To prove $s_1(z) = s_2(z)$
+    \begin{itemize}
+    \item $z \ne x \land z \ne y$: $s_1(z) = z = s_2(z)$
+    \item $z = x \land z \ne y$: $s_1(z) = b[y:=c] = s_2(z)$
+    \item $z \ne x \land z = y$: $s_1(z) = c = s_2(z)$
+    \end{itemize}
+  \item $a$ is the application $t u$.
+    $$\begin{array}{llll}
+        s_1(t u) &=& s_1(t) s_1(u) & \text{definition of substitution}\\
+       &=& s_2(t) s_2(u) & \text{induction hypothesis}\\
+        &=& s_2(t u) & \text{definition of substitution}
+      \end{array}$$
+      with the abbreviations $s_1(v) := v[x:=b][y:=c]$ and $s_2(v) :=
+      v[y:=c][x:=b[y:=c]]$.
+    \item $a$ is the abstraction $\lambda z.t$.
+    $$\begin{array}{llll}
+        s_1(\lambda z. t) &=& \lambda z. s_1(t)  & \text{definition of substitution}\\
+       &=& \lambda z. s_2(t) & \text{induction hypothesis}\\
+        &=& s_2(\lambda z.t) & \text{definition of substitution}
+      \end{array}$$
+      with appropriate renaming of the bound variable $z$ in order to avoid
+      variable capture.
+  \end{enumerate}
+\end{theorem}
 
 \begin{definition} \emph{Beta reduction} $\tobeta$ is a relation defined over lambda
   terms by the rules
@@ -307,13 +332,274 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
 
 
 \begin{lemma}
-  $t \tobetap u \imp a[x := t] \tobetap a[x := u]$. Proof TBD.
+  $t \tobetap u \imp a[x := t] \tobetap a[x := u]$. Proof by induction on the
+  structure of $a$.
+  \begin{enumerate}
+  \item $a$ is a variable. To prove: $z[x := t] \tobetap z[x := u]$. Case $z=x$
+    is satisfied because of the assumption $t \tobetap u$. Case $z\ne x$ is
+    satisfied by reflexivity $z \tobetap z$.
+  \item  $a$ is an application $b\, c$.
+    $$
+    \begin{array}{llll}
+      (b c)[x:=t] &=& b[x:=t]\, c[x:=t] &\text{definition of substitution}\\
+      &\tobetap & b[x:=u]\, c[x:=u] &\text{ind hypo + rule 3} \\
+      &=& (b c)[x:=u] & \text{definition of substitution}
+    \end{array}
+    $$
+  \item  $a$ is an abstraction $\lambda y.b$.
+    $$
+    \begin{array}{llll}
+      (\lambda y.b)[x:=t] &=& \lambda y. b[x:=t]  &\text{definition of substitution}\\
+      &\tobetap & \lambda y.b[x:=u] &\text{ind hypo + rule 2} \\
+      &=& (\lambda y.b)[x:=u] & \text{definition of substitution}
+    \end{array}
+    $$
+  \end{enumerate}
 \end{lemma}
 
 \begin{lemma}
-  $a \tobetap c \land b \tobetap d  \imp a[x := b] \tobetap c[x := d]$. Proof TBD.
+  % a -> c and b -> d  =>  a[x:=b] -> c[x:=d]
+  % ----------------------------------
+  $a \tobetap c \land b \tobetap d  \imp a[x := b] \tobetap c[x := d]$. Proof
+  by induction on $a \tobetap c $.
+  \begin{enumerate}
+  \item
+    $a=c$. Prove by the previous lemma.
+  \item
+    $\lambda y.a \tobetap \lambda y.c$. Premise $a \tobetap c$. Induction
+    hypothesis $a[x := b] \tobetap c[x := d$
+    $$
+    \begin{array}{llll}
+      (\lambda y.a)[x := b]  &=& \lambda y.a [x := b] &\text{definition substitution}\\
+                             &\tobetap& \lambda y.c[x := d] &\text{induction hypo + rule 2} \\
+                             &=& (\lambda y.c)[x := d] &\text{definition substitution}
+    \end{array}
+    $$.
+  \item
+    $a e \tobetap c f$.
+    Premises $a\tobetap c, e\tobetap f$.
+    Induction hypotheses
+      $a[x := b] \tobetap c[x := d],
+       e[x := b] \tobetap f[x := d]$
+    $$
+    \begin{array}{llll}
+      (a e)[x := b]  &=& a[x := b]\, e[x := b] &\text{definition substitution}\\
+                     &\tobetap& c[x := d] \, f[x := d] &\text{induction hypo + rule 3} \\
+                     &=& (c f)[x := d] &\text{definition substitution}
+    \end{array}
+    $$.
+  \item
+    $(\lambda y.a) c \tobetap e[y:=f]$.
+    Premises $a \tobetap e, c \tobetap f$.
+    Induction hypotheses
+      $a[x:=b] \tobetap e[x := d],
+        c[x:=b]  \tobetap f[x := d]$
+    $$
+    \begin{array}{llll}
+      ((\lambda y.a) c)[x := b]  &=& (\lambda y.a[x := b])\, c[x := b] &
+                                                                         \text{definition substitution}\\
+                     &\tobetap& e[x := d]\big[y:=f[x := d]\big] &
+                                                                  \text{induction hypo + rule 4} \\
+                     &=& \big(e[y:=f]\big)[x := d] &
+                                                                  \text{substitution
+                                                           swap lemma}
+    \end{array}
+    $$
+  \end{enumerate}
 \end{lemma}
 
+
+
+
+
+\begin{theorem}
+  Parallel reduction $\tobetap$ is a diamond i.e.
+  %------------------------------------
+  $\begin{matrix}
+    a & \tobetap & b \\
+    \downarrow_p & & \downarrow_p \\
+    c & \tobetap & \exists d
+  \end{matrix}
+  $.
+  Proof by induction on $a \tobetap b$.
+  xs\begin{enumerate}
+  \item
+    $a=b$. Use $d = c$.
+
+  \item
+    $\lambda x.a \tobetap \lambda x.b$. Premise $a \tobetap b$.
+    Goal $
+    \begin{matrix}
+      \lambda x.a & \tobetap & \lambda x.b \\
+      \downarrow_p & & \downarrow_p \\
+      c & \tobetap & ?
+    \end{matrix}    $.
+    Parallel reduction preserves
+    abstraction. Therefore $\lambda x.a \tobetap c$ implies some $d$ with $a
+    \tobetap d$ and $c = \lambda x.d$.
+    Induction hypothesis $
+    \begin{matrix}
+    a & \tobetap & b \\
+    \downarrow_p & & \downarrow_p \\
+    d & \tobetap & \exists e
+  \end{matrix}$.
+  Using $d$ and $e$ we get $
+  \begin{matrix}
+    \lambda x.a & \tobetap & \lambda x.b \\
+    \downarrow_p & & \downarrow_p \\
+    \lambda x.d & \tobetap & \lambda x.e
+  \end{matrix} $
+
+  \item
+    $a e \tobetap b f$.
+    Premises $a \tobetap b, e \tobetap f$.
+    Goal $
+    \begin{matrix}
+      a e & \tobetap & b f \\
+      \downarrow_p & & \downarrow_p \\
+      c & \tobetap & ?
+    \end{matrix}$.
+    Proof bysubinduction on $a e \tobetap c$.
+    \begin{enumerate}
+    \item
+      $c = a e$. Use $b f$.
+    \item
+      Syntactically impossible, because $a e$ is not an abstraction.
+    \item
+      $a e \tobetap g h$.
+      Premises $a \tobetap g, e \tobetap h$.
+      Induction hypotheses $
+      \begin{matrix}
+        a & \tobetap & b \\
+        \downarrow_p & & \downarrow_p \\
+        g & \tobetap & \exists i
+      \end{matrix}$
+      ,
+      $\begin{matrix}
+        e & \tobetap & h \\
+        \downarrow_p & & \downarrow_p \\
+        h & \tobetap & \exists k
+      \end{matrix}$.
+      Therefore we get $
+      \begin{matrix}
+        a e & \tobetap & b f \\
+        \downarrow_p & & \downarrow_p \\
+        g h & \tobetap & i k
+      \end{matrix}$.
+    \item
+      $(\lambda x.a) e \tobetap g[x:=h]$.
+      \begin{itemize}
+      \item Goal $
+        \begin{matrix}
+          (\lambda x.a) e & \tobetap & b f \\
+          \downarrow_p & & \downarrow_p \\
+          g[x:=h] & \tobetap & ?
+        \end{matrix}$.
+      \item Premises $a \tobetap g, e \tobetap h$.
+      \item Outer premises $\lambda x.a \tobetap b, e \tobetap f$
+      \item Induction hypothesis
+        $\begin{matrix}
+          e & \tobetap & f \\
+          \downarrow_p & & \downarrow_p \\
+          h & \tobetap & \exists k
+        \end{matrix}
+        $.
+      \item Parallel reduction preserves abstraction. Therefore there is some
+        $m$ with $b = \lambda x.m, a \tobetap m, \lambda x.a \tobetap \lambda
+        x.m$.
+      \item Induction hypothesis $
+        \begin{matrix}
+          a & \tobetap & m \\
+          \downarrow_p & & \downarrow_p \\
+          g & \tobetap & \exists n
+        \end{matrix}$.
+      \item We get $
+        \begin{matrix}
+          (\lambda x.a) e & \tobetap & (\lambda x.m) f \\
+          \downarrow_p & & \downarrow_p \\
+          g[x:=h] & \tobetap & n[x:=k]
+        \end{matrix}$
+      \end{itemize}
+\end{enumerate}
+  \item
+    $(\lambda x.a) e \tobetap b[x:=f]$.
+    Goal $
+    \begin{matrix}
+      (\lambda x.a) e &\tobetap& b[x:=f] \\
+      \downarrow_p & & \downarrow_p \\
+      c &\tobetap & \exists d
+    \end{matrix}
+    $.
+    Premises $a \tobetap b, e \tobetap f$.
+    Proof by subinduction on $(\lambda x.a) e \tobetap c$
+    \begin{enumerate}
+    \item
+      $c = (\lambda x.a) e$. Use $d = (\lambda x.b) f$
+    \item Syntactically impossible because $(\lambda x.a) e$ is an
+      application and not an abstraction.
+    \item
+      $(\lambda x.a) e \tobetap g h$
+      \begin{itemize}
+      \item Goal $
+        \begin{matrix}
+          (\lambda x.a) e &\tobetap& b[x:=f] \\
+          \downarrow_p & & \downarrow_p \\
+          g h &\tobetap & \exists d
+        \end{matrix}$
+      \item Premises $\lambda x.a \tobetap g, e \tobetap h$.
+      \item Induction hypothesis $
+        \begin{matrix}
+          e &\tobetap& f \\
+          \downarrow_p & & \downarrow_p \\
+          h &\tobetap & \exists i
+        \end{matrix}$
+      \item $\tobetap$ preserves abstraction, therefore there is some $k$ with
+        $g = \lambda x.k, a \tobetap k$.
+      \item Induction hypothesis
+        $\begin{matrix}
+          a &\tobetap& b \\
+          \downarrow_p & & \downarrow_p \\
+          k &\tobetap & \exists m
+        \end{matrix}$
+      \item We get $
+        \begin{matrix}
+          (\lambda x.a) e &\tobetap& b[x:=f] \\
+          \downarrow_p & & \downarrow_p \\
+          (\lambda x.k) h &\tobetap & m[x:=i]
+        \end{matrix}$
+      \end{itemize}
+    \item
+      $(\lambda x.a) e \tobetap g[x:=h]$
+      \begin{itemize}
+      \item Goal $
+        \begin{matrix}
+          (\lambda x.a) e &\tobetap& b[x:=f] \\
+          \downarrow_p & & \downarrow_p \\
+          g[x:=h] &\tobetap & \exists d
+        \end{matrix}$
+      \item Premises $a \tobetap g, e \tobetap h$.
+      \item Induction hypotheses $
+        \begin{matrix}
+          a &\tobetap& b \\
+          \downarrow_p & & \downarrow_p \\
+          g &\tobetap & \exists m
+        \end{matrix},\,
+        \begin{matrix}
+          e &\tobetap& f \\
+          \downarrow_p & & \downarrow_p \\
+          h &\tobetap & \exists i
+        \end{matrix}$
+      \item
+        We get  $
+        \begin{matrix}
+          (\lambda x.a) e &\tobetap& b[x:=f] \\
+          \downarrow_p & & \downarrow_p \\
+          g[x:=h] &\tobetap & m[x:=i]
+        \end{matrix}$
+      \end{itemize}
+    \end{enumerate}
+  \end{enumerate}
+\end{theorem}
 
 \section{Reduction Strategies}
 

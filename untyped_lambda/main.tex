@@ -292,6 +292,10 @@ $b[y:=c]$ before substituting the variable $x$ by $b$.
   \end{enumerate}
 \end{theorem}
 
+
+
+
+
 \begin{definition} \emph{Beta reduction} $\tobeta$ is a relation defined over lambda
   terms by the rules
   \begin{enumerate}
@@ -302,10 +306,89 @@ $b[y:=c]$ before substituting the variable $x$ by $b$.
   \end{enumerate}
 \end{definition}
 
-\section{Church Rosser - Confluence}
 
-\begin{definition} \emph{Parallel beta reduction} $\tobetap$ is a relation
+
+
+\begin{theorem}
+  $\tobetastar$ preserves abstraction
+  %---------------------------
+  i.e. $a \tobetastar b \imp \lambda x.a \tobetastar \lambda x.b$.
+  Proof by induction on $a \tobetastar b$.
+  \begin{enumerate}
+  \item Goal $a \tobetastar a \imp \lambda x.a \tobetastar \lambda
+    x.a$. Trivial by reflexivity of $\tobetastar$.
+    \item
+      Goal $a \tobetastar c \imp \lambda x.a \tobetastar \lambda x.c$.
+      Premises $a \tobetastar b, b \tobeta c$.
+      Induction hypothesis $\lambda x.a \tobetastar \lambda x.b$.
+      We get $\lambda x.b \tobeta \lambda x.c$ by rule 2 of $\tobeta$ and
+      the goal by rule 2 of reflexive transitive closure.
+  \end{enumerate}
+\end{theorem}
+
+
+\begin{lemma}
+  Basic application preservation lemma of $\tobetastar$:
+  $b \tobetastar c  \imp a b \tobetastar a c$.
+  %------------------------------------------
+  Proof by induction on $b \tobetastar c$.
+  \begin{enumerate}
+  \item
+    Trivial by reflexivity of the closure.
+  \item
+    Goal $b \tobetastar d  \imp a b \tobetastar a d$.
+    Premises $b \tobetastar c$ and $c \tobeta d$.
+    Induction hypothesis $b \tobetastar c  \imp a b \tobetastar a c$.
+    From $c \tobeta d$ we get $a c \tobeta a d$ by rule 3 of beta reduction
+    and $a b \tobetastar a d$ by rule 2 of the reflexive transitive closure.
+  \end{enumerate}
+\end{lemma}
+
+
+
+\begin{theorem}
+  $\tobetastar$ preserves application
+  i.e. $a \tobetastar b \land c \tobetastar d \imp a c \tobetastar b d$.
+  %----------------------------------------------------
+  Proof by induction on $a \tobetastar b$.
+  \begin{enumerate}
+  \item
+    Goal $a \tobetastar a \land c \tobetastar d \imp a c \tobetastar a d$.
+    By previous lemma.
+  \item
+    Goal $a \tobetastar e \land c \tobetastar d \imp a c \tobetastar e d$.
+    Premises $a \tobetastar b$ and $b \tobeta e$.
+    Induction hypothesis $a \tobetastar b \land c \tobetastar d \imp
+    a c\tobetastar b d$.
+    From $b \tobeta e$ be get $b d \tobeta e d$ by rule 2 of beta reduction
+    and $a c \tobetastar e d$ by rule 2 of the reflexive transitive closure.
+  \end{enumerate}
+\end{theorem}
+
+
+
+\begin{theorem}
+  $\tobetastar$ preserves reduction
+  i.e. $a \tobetastar b \land c \tobetastar d \imp
+  (\lambda x.a) c \tobetastar b[x:=d]$.
+  %----------------------------------------------------
+  Proof similar to the proof of the preservation of application in two steps
+  by first proving a lemma where only $c$ is reduced to $d$ and then the
+  complete theorem.
+\end{theorem}
+
+
+
+
+
+
+\section{Church Rosser (Confluence)}
+
+\begin{definition}
+  % -------------------------------------------------------
+  \emph{Parallel beta reduction} $\tobetap$ is a relation
   defined over lambda terms by the rules
+  % -------------------------------------------------------
   \begin{enumerate}
   \item $a \tobetap a$
   \item $\rulev{a \tobetap b} {\lambda x.a \tobetap \lambda x.b}$
@@ -314,10 +397,66 @@ $b[y:=c]$ before substituting the variable $x$ by $b$.
   \end{enumerate}
 \end{definition}
 
+\begin{lemma}
+  Beta reduction is a subset of parallel beta reduction i.e.
+  %---------------------------------------
+  $a \tobeta b \imp a \tobetap b$.
+  Proof by induction on $a \tobeta b$. Trivial because each rule of $\tobeta$
+  is a special case of some rule of $\tobetap$.
+\end{lemma}
+
+
+\begin{lemma}
+  Parallel beta reduction is a subset of the reflexive transitive closure of
+  beta reduction i.e.
+  %---------------------------------------
+  $a \tobetap b \imp a \tobetastar b$.
+  Proof by induction on $a \tobetap b$.
+  \begin{enumerate}
+  \item
+    Trivial by reflexivity.
+  \item
+    Goal $
+    (\lambda x.a) \tobetap \lambda x.b  \imp
+    (\lambda x.a) \tobetastar \lambda x.b$.
+    Premise $a \tobetap b$.
+    Induction hypothesis $a \tobetastar b$.
+    Since $\tobetastar$ preserves abstraction (theorem of the previous
+    chapter) we can conclude the goal.
+  \item
+    Goal $a c \tobetap b d \imp a c \tobetastar b d$.
+    Premises $a \tobetap b$ and $c \tobetap d$.
+    Induction hypotheses $a \tobetap b \imp a \tobetastar b$ and
+    $c \tobetap d \imp c \tobetastar d$.
+    Since $\tobetastar$ preserves application we can conclude the goal $a c
+    \tobetastar b d$.
+  \item
+    Goal $(\lambda x.a) c \tobetap b[x:=d] \imp
+    (\lambda x.a) c \tobetastar b[x:=d]$.
+    Premises $a \tobetap b$ and $c \tobetap d$.
+    Induction hypotheses $a \tobetap b \imp a \tobetastar b$ and
+    $c \tobetap d \imp c \tobetastar d$.
+    Since $\tobetastar$ preserves reduction we can conclude the goal $(\lambda x.a) c
+    \tobetastar b[x:=d]$.
+  \end{enumerate}
+\end{lemma}
+
+
+
+\begin{theorem}
+  Parallel beta reduction is between beta reduction and its transitive closure
+  i.e. $(\tobeta) \subseteq (\tobetap) \subseteq (\tobetastar)$.
+  %----------------------------------------------------------
+  Proof by the previous two lemmas.
+\end{theorem}
+
+
+
+
 In order to prove that $\tobetap$ is a diamond we need some lemmas.
 
 \begin{lemma}
-  Parallel beta reduction preserves abstractions i.e.
+  Parallel beta reduction preserves abstraction i.e.
   $\lambda x.a \tobetap c \imp \exists b : a \tobetap b \land c = \lambda
   x.b$. Proof by induction on $\tobetap$.
   \begin{enumerate}
@@ -332,21 +471,26 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
 
 
 \begin{lemma}
+  Basic compatibility of substitution and parallel reduction.
   $t \tobetap u \imp a[x := t] \tobetap a[x := u]$. Proof by induction on the
   structure of $a$.
   \begin{enumerate}
-  \item $a$ is a variable. To prove: $z[x := t] \tobetap z[x := u]$. Case $z=x$
+  \item $a$ is a variable. Goal $z[x := t] \tobetap z[x := u]$. Case $z=x$
     is satisfied because of the assumption $t \tobetap u$. Case $z\ne x$ is
     satisfied by reflexivity $z \tobetap z$.
-  \item  $a$ is an application $b\, c$.
+  \item
+    $a$ is an application $b\, c$.
+    Goal $(b c)[x:=t] \tobetap (b c)[x:=u]$
     $$
     \begin{array}{llll}
-      (b c)[x:=t] &=& b[x:=t]\, c[x:=t] &\text{definition of substitution}\\
-      &\tobetap & b[x:=u]\, c[x:=u] &\text{ind hypo + rule 3} \\
-      &=& (b c)[x:=u] & \text{definition of substitution}
+      (b c)[x:=t] &=& b[x:=t]\, c[x:=t] &              \text{definition of substitution}\\
+                      &\tobetap & b[x:=u]\, c[x:=u] & \text{ind hypo + rule 3} \\
+                      &=& (b c)[x:=u] &                       \text{definition of substitution}
     \end{array}
     $$
-  \item  $a$ is an abstraction $\lambda y.b$.
+  \item
+    $a$ is an abstraction $\lambda y.b$.
+    Goal $(\lambda y.b)[x:=t] \tobetap (\lambda y.b)[x:=u]$.
     $$
     \begin{array}{llll}
       (\lambda y.b)[x:=t] &=& \lambda y. b[x:=t]  &\text{definition of substitution}\\
@@ -357,7 +501,9 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
   \end{enumerate}
 \end{lemma}
 
+
 \begin{lemma}
+  Full compatibility of substitution and parallel reduction.
   % a -> c and b -> d  =>  a[x:=b] -> c[x:=d]
   % ----------------------------------
   $a \tobetap c \land b \tobetap d  \imp a[x := b] \tobetap c[x := d]$. Proof
@@ -366,17 +512,18 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
   \item
     $a=c$. Prove by the previous lemma.
   \item
-    $\lambda y.a \tobetap \lambda y.c$. Premise $a \tobetap c$. Induction
-    hypothesis $a[x := b] \tobetap c[x := d$
+    Goal $(\lambda y.a) [x := b] \tobetap (\lambda y.c) [x := d]$.
+    Premise $a \tobetap c$. Induction
+    hypothesis $a[x := b] \tobetap c[x := d]$
     $$
     \begin{array}{llll}
-      (\lambda y.a)[x := b]  &=& \lambda y.a [x := b] &\text{definition substitution}\\
-                             &\tobetap& \lambda y.c[x := d] &\text{induction hypo + rule 2} \\
-                             &=& (\lambda y.c)[x := d] &\text{definition substitution}
+      (\lambda y.a)[x := b]  &=& \lambda y.a [x := b] &\text{definition substitution} \\
+                             &\tobetap& \lambda y.c[x := d]  &\text{induction hypo + rule 2} \\
+                             &=& (\lambda y.c)[x := d]           &\text{definition substitution}
     \end{array}
     $$.
   \item
-    $a e \tobetap c f$.
+    Goal $(a e) [x := b] \tobetap (c f) [x := d]$.
     Premises $a\tobetap c, e\tobetap f$.
     Induction hypotheses
       $a[x := b] \tobetap c[x := d],
@@ -389,7 +536,7 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
     \end{array}
     $$.
   \item
-    $(\lambda y.a) c \tobetap e[y:=f]$.
+    Goal $\big((\lambda y.a) c\big) [x := b] \tobetap \big(e[y:=f]\big)[x := d]$.
     Premises $a \tobetap e, c \tobetap f$.
     Induction hypotheses
       $a[x:=b] \tobetap e[x := d],
@@ -406,6 +553,7 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
     \end{array}
     $$
   \end{enumerate}
+  $\qed$
 \end{lemma}
 
 
@@ -422,183 +570,77 @@ In order to prove that $\tobetap$ is a diamond we need some lemmas.
   \end{matrix}
   $.
   Proof by induction on $a \tobetap b$.
-  xs\begin{enumerate}
+  \begin{enumerate}
   \item
-    $a=b$. Use $d = c$.
+    Trivial reflexive case.
+    $\diamp
+    {a} {a}
+    {c} {c}
+    $
+
+  \item Goal
+    $\diamp
+    {\lambda x.a} {\lambda x.b}
+    {\lambda x.c} {?}$.
+    Parallel reduction preserves abstraction. Therefore the specific
+    $\lambda x.c$ instead of the more general $c$.
+    The premises $a\tobetap b, a \tobetap c$ and the induction hypothesis
+    guarantees the existence of a $d$ such that $\lambda x.d$ is the element
+    to fill the gap.
 
   \item
-    $\lambda x.a \tobetap \lambda x.b$. Premise $a \tobetap b$.
-    Goal $
-    \begin{matrix}
-      \lambda x.a & \tobetap & \lambda x.b \\
-      \downarrow_p & & \downarrow_p \\
-      c & \tobetap & ?
-    \end{matrix}    $.
-    Parallel reduction preserves
-    abstraction. Therefore $\lambda x.a \tobetap c$ implies some $d$ with $a
-    \tobetap d$ and $c = \lambda x.d$.
-    Induction hypothesis $
-    \begin{matrix}
-    a & \tobetap & b \\
-    \downarrow_p & & \downarrow_p \\
-    d & \tobetap & \exists e
-  \end{matrix}$.
-  Using $d$ and $e$ we get $
-  \begin{matrix}
-    \lambda x.a & \tobetap & \lambda x.b \\
-    \downarrow_p & & \downarrow_p \\
-    \lambda x.d & \tobetap & \lambda x.e
-  \end{matrix} $
+    Goal $\diamp {a e} {b f} {c}  {?}$. Premises $a \tobetap b, e \tobetap f$.
+    Proof by subinduction on $a e \tobetap c$.
 
-  \item
-    $a e \tobetap b f$.
-    Premises $a \tobetap b, e \tobetap f$.
-    Goal $
-    \begin{matrix}
-      a e & \tobetap & b f \\
-      \downarrow_p & & \downarrow_p \\
-      c & \tobetap & ?
-    \end{matrix}$.
-    Proof bysubinduction on $a e \tobetap c$.
     \begin{enumerate}
+    \item Trivial reflexive case.
+    \item Syntactically impossible
     \item
-      $c = a e$. Use $b f$.
+      Goal $\diamp {a e} {b f} {g h} {?}$.
+
+      The premises $a \tobetap b, a \tobetap g, e \tobetap f, e \tobetap h$
+      with the corresponding induction hypotheses guarantee the existence of
+      two element $k$ and $m$ so that $ k m$ can fill the missing element in
+      the goal.
+
     \item
-      Syntactically impossible, because $a e$ is not an abstraction.
-    \item
-      $a e \tobetap g h$.
-      Premises $a \tobetap g, e \tobetap h$.
-      Induction hypotheses $
-      \begin{matrix}
-        a & \tobetap & b \\
-        \downarrow_p & & \downarrow_p \\
-        g & \tobetap & \exists i
-      \end{matrix}$
-      ,
-      $\begin{matrix}
-        e & \tobetap & h \\
-        \downarrow_p & & \downarrow_p \\
-        h & \tobetap & \exists k
-      \end{matrix}$.
-      Therefore we get $
-      \begin{matrix}
-        a e & \tobetap & b f \\
-        \downarrow_p & & \downarrow_p \\
-        g h & \tobetap & i k
-      \end{matrix}$.
-    \item
-      $(\lambda x.a) e \tobetap g[x:=h]$.
-      \begin{itemize}
-      \item Goal $
-        \begin{matrix}
-          (\lambda x.a) e & \tobetap & b f \\
-          \downarrow_p & & \downarrow_p \\
-          g[x:=h] & \tobetap & ?
-        \end{matrix}$.
-      \item Premises $a \tobetap g, e \tobetap h$.
-      \item Outer premises $\lambda x.a \tobetap b, e \tobetap f$
-      \item Induction hypothesis
-        $\begin{matrix}
-          e & \tobetap & f \\
-          \downarrow_p & & \downarrow_p \\
-          h & \tobetap & \exists k
-        \end{matrix}
-        $.
-      \item Parallel reduction preserves abstraction. Therefore there is some
-        $m$ with $b = \lambda x.m, a \tobetap m, \lambda x.a \tobetap \lambda
-        x.m$.
-      \item Induction hypothesis $
-        \begin{matrix}
-          a & \tobetap & m \\
-          \downarrow_p & & \downarrow_p \\
-          g & \tobetap & \exists n
-        \end{matrix}$.
-      \item We get $
-        \begin{matrix}
-          (\lambda x.a) e & \tobetap & (\lambda x.m) f \\
-          \downarrow_p & & \downarrow_p \\
-          g[x:=h] & \tobetap & n[x:=k]
-        \end{matrix}$
-      \end{itemize}
-\end{enumerate}
-  \item
-    $(\lambda x.a) e \tobetap b[x:=f]$.
-    Goal $
-    \begin{matrix}
-      (\lambda x.a) e &\tobetap& b[x:=f] \\
-      \downarrow_p & & \downarrow_p \\
-      c &\tobetap & \exists d
-    \end{matrix}
-    $.
-    Premises $a \tobetap b, e \tobetap f$.
-    Proof by subinduction on $(\lambda x.a) e \tobetap c$
-    \begin{enumerate}
-    \item
-      $c = (\lambda x.a) e$. Use $d = (\lambda x.b) f$
-    \item Syntactically impossible because $(\lambda x.a) e$ is an
-      application and not an abstraction.
-    \item
-      $(\lambda x.a) e \tobetap g h$
-      \begin{itemize}
-      \item Goal $
-        \begin{matrix}
-          (\lambda x.a) e &\tobetap& b[x:=f] \\
-          \downarrow_p & & \downarrow_p \\
-          g h &\tobetap & \exists d
-        \end{matrix}$
-      \item Premises $\lambda x.a \tobetap g, e \tobetap h$.
-      \item Induction hypothesis $
-        \begin{matrix}
-          e &\tobetap& f \\
-          \downarrow_p & & \downarrow_p \\
-          h &\tobetap & \exists i
-        \end{matrix}$
-      \item $\tobetap$ preserves abstraction, therefore there is some $k$ with
-        $g = \lambda x.k, a \tobetap k$.
-      \item Induction hypothesis
-        $\begin{matrix}
-          a &\tobetap& b \\
-          \downarrow_p & & \downarrow_p \\
-          k &\tobetap & \exists m
-        \end{matrix}$
-      \item We get $
-        \begin{matrix}
-          (\lambda x.a) e &\tobetap& b[x:=f] \\
-          \downarrow_p & & \downarrow_p \\
-          (\lambda x.k) h &\tobetap & m[x:=i]
-        \end{matrix}$
-      \end{itemize}
-    \item
-      $(\lambda x.a) e \tobetap g[x:=h]$
-      \begin{itemize}
-      \item Goal $
-        \begin{matrix}
-          (\lambda x.a) e &\tobetap& b[x:=f] \\
-          \downarrow_p & & \downarrow_p \\
-          g[x:=h] &\tobetap & \exists d
-        \end{matrix}$
-      \item Premises $a \tobetap g, e \tobetap h$.
-      \item Induction hypotheses $
-        \begin{matrix}
-          a &\tobetap& b \\
-          \downarrow_p & & \downarrow_p \\
-          g &\tobetap & \exists m
-        \end{matrix},\,
-        \begin{matrix}
-          e &\tobetap& f \\
-          \downarrow_p & & \downarrow_p \\
-          h &\tobetap & \exists i
-        \end{matrix}$
-      \item
-        We get  $
-        \begin{matrix}
-          (\lambda x.a) e &\tobetap& b[x:=f] \\
-          \downarrow_p & & \downarrow_p \\
-          g[x:=h] &\tobetap & m[x:=i]
-        \end{matrix}$
-      \end{itemize}
+      Goal $\diamp {(\lambda x.a) e} {(\lambda x.b) f} {c[x:=g]} {?}$.
+      Parallel reduction preserves abstraction. Therefore the specific
+      $\lambda x.b$ in the upper right corner.
+      The premises $a \tobetap b, a \tobetap c, e \tobetap f, e \tobetap g$
+      and the corresponding induction hypotheses guarantee the existence of
+      two elements $d$ and $h$ so that $d[x:=h]$ fills the missing element
+      in the goal.
     \end{enumerate}
+
+  \item
+    Goal $\diamp {(\lambda x.a) e} {b[x:=f]} {c} {?}$. Premises $a \tobetap b, e \tobetap f$.
+    Proof by subinduction on $(\lambda x.a) e \tobetap c$.
+    \begin{enumerate}
+    \item Trivial reflexive case.
+    \item Syntactically impossible
+    \item Mirror image of case 3d, just flipped at the northwest-southeast diagonal.
+    \item
+      Goal $\diamp {(\lambda x.a) e} {b[x:=f]} {c[x:=g]} {?}$
+      The premises $a \tobetap b, a \tobetap c, e \tobetap f, e \tobetap g$
+      and the corresponding induction hypotheses guarantee the existence of
+      two elements $d$ and $h$ so that $d[x:=h]$ fills the missing element
+      in the goal.
+    \end{enumerate}
+
   \end{enumerate}
+  $\qed$
+\end{theorem}
+
+
+\begin{theorem}
+  Beta reduction is confluent.
+  %--------------------
+  Proof: With the parallel beta reduction$\tobetap$ we have found a diamond
+  relation between beta reduction $\tobeta$ and its transitive closure
+  $\tobetastar$. According to the confluence theorems of the chapter
+  ``Inductive Sets and Relations'' this is sufficient to prove the confluence
+  of beta reduction.
 \end{theorem}
 
 \section{Reduction Strategies}

@@ -14,6 +14,20 @@
 \newcommand{\toeqv}{\reqv\to}
 \newcommand{\neglow}{\neg\,}
 
+\newcommand{\diamg}[6]{
+  \begin{matrix}
+    #3 & #1 & #4 \\
+    #2 &      & #2 \\
+    #5 & #1 & #6
+  \end{matrix}
+}
+\newcommand{\diam} [4] {
+  \diamg{\to}{\downarrow}{#1}{#2}{#3}{#4}
+}
+\newcommand{\diamp} [4] {
+  \diamg{\to_p}{\downarrow_p}{#1}{#2}{#3}{#4}
+}
+
 \newcommand{\indrule}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
 \newcommand{\ruleh}[2]{\begin{array}{c} #1 \\ \hline #2\end{array}}
 \newcommand{\rulev}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}

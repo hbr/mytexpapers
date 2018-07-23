@@ -309,73 +309,80 @@ $b[y:=c]$ before substituting the variable $x$ by $b$.
 
 
 
-\begin{theorem}
-  $\tobetastar$ preserves abstraction
-  %---------------------------
-  i.e. $a \tobetastar b \imp \lambda x.a \tobetastar \lambda x.b$.
-  Proof by induction on $a \tobetastar b$.
-  \begin{enumerate}
-  \item Goal $a \tobetastar a \imp \lambda x.a \tobetastar \lambda
-    x.a$. Trivial by reflexivity of $\tobetastar$.
-    \item
-      Goal $a \tobetastar c \imp \lambda x.a \tobetastar \lambda x.c$.
-      Premises $a \tobetastar b, b \tobeta c$.
-      Induction hypothesis $\lambda x.a \tobetastar \lambda x.b$.
-      We get $\lambda x.b \tobeta \lambda x.c$ by rule 2 of $\tobeta$ and
-      the goal by rule 2 of reflexive transitive closure.
-  \end{enumerate}
-\end{theorem}
-
-
-\begin{lemma}
-  Basic application preservation lemma of $\tobetastar$:
-  $b \tobetastar c  \imp a b \tobetastar a c$.
-  %------------------------------------------
-  Proof by induction on $b \tobetastar c$.
-  \begin{enumerate}
-  \item
-    Trivial by reflexivity of the closure.
-  \item
-    Goal $b \tobetastar d  \imp a b \tobetastar a d$.
-    Premises $b \tobetastar c$ and $c \tobeta d$.
-    Induction hypothesis $b \tobetastar c  \imp a b \tobetastar a c$.
-    From $c \tobeta d$ we get $a c \tobeta a d$ by rule 3 of beta reduction
-    and $a b \tobetastar a d$ by rule 2 of the reflexive transitive closure.
-  \end{enumerate}
-\end{lemma}
 
 
 
 \begin{theorem}
-  $\tobetastar$ preserves application
-  i.e. $a \tobetastar b \land c \tobetastar d \imp a c \tobetastar b d$.
-  %----------------------------------------------------
-  Proof by induction on $a \tobetastar b$.
+  $\tobetastar$ satisfies
+  $\ruleh{
+    a\tobetastar b \quad
+    c \tobetastar d}
+  {ac \tobetastar bd}$.
+  %---------------
+
+Proof by induction on $a \tobetastar b$.
+\begin{enumerate}
+\item
+  Goal $\ruleh{
+    a  \tobetastar a \quad
+    c  \tobetastar d}
+  {ac \tobetastar ad}$.\\
+  Proof by subinduction on $c \tobetastar d$
   \begin{enumerate}
   \item
-    Goal $a \tobetastar a \land c \tobetastar d \imp a c \tobetastar a d$.
-    By previous lemma.
+    Trivial by reflexivity.
   \item
-    Goal $a \tobetastar e \land c \tobetastar d \imp a c \tobetastar e d$.
-    Premises $a \tobetastar b$ and $b \tobeta e$.
-    Induction hypothesis $a \tobetastar b \land c \tobetastar d \imp
-    a c\tobetastar b d$.
-    From $b \tobeta e$ be get $b d \tobeta e d$ by rule 2 of beta reduction
-    and $a c \tobetastar e d$ by rule 2 of the reflexive transitive closure.
+    $\begin{bmatrix}
+      c   & \tobetastar      &  d_0  & \tobeta            &   d   \\
+           & \Downarrow_1 &         & \Downarrow_2 &        \\
+      ac & \tobetastar    & ad_0 & \tobeta              &   ad \\
+          &                       & \Downarrow_3 &           &        \\
+      ac &                      & \tobetastar   &              &   ad
+    \end{bmatrix}$.\\
+    $\Downarrow_1$ by induction hypothesis.
+    $\Downarrow_2$ by rule 3 of $\beta$reduction.
+    $\Downarrow_3$ by rule 2 of $\tobetastar$.
+  \end{enumerate}
+  \item
+    $\begin{bmatrix}
+      a   & \tobetastar      &  b_0  & \tobeta            &   b   \\
+           & \Downarrow_1 &         & \Downarrow_2 &        \\
+      ac & \tobetastar      & b_0d & \tobeta            &   ad \\
+           &                        & \Downarrow_3 &         &        \\
+      ac &                         & \tobetastar   &           &   ad
+    \end{bmatrix}$.\\
+    $\Downarrow_1$ by induction hypothesis.
+    $\Downarrow_2$ by rule 2 of $\beta$reduction.
+    $\Downarrow_3$ by rule 2 of $\tobetastar$.
   \end{enumerate}
 \end{theorem}
 
 
 
+
 \begin{theorem}
-  $\tobetastar$ preserves reduction
-  i.e. $a \tobetastar b \land c \tobetastar d \imp
-  (\lambda x.a) c \tobetastar b[x:=d]$.
-  %----------------------------------------------------
-  Proof similar to the proof of the preservation of application in two steps
-  by first proving a lemma where only $c$ is reduced to $d$ and then the
-  complete theorem.
+  $\tobetastar$ satisfies
+  $\ruleh{
+    a\tobetastar b \quad
+    c \tobetastar d}
+  {(\lambda x.a)c \tobetastar b[x:=d]}$.
+  %-----------------------------
+  \\ Proof in the same manner as the previous theorem with induction on
+  $a\tobetastar b$ and then a subinduction on $c \tobetastar d$ for the
+  reflexive case.
 \end{theorem}
+
+
+\begin{theorem}
+  $\tobetastar$ satisfies
+  $\ruleh{
+    a\tobetastar b}
+  {\lambda x.a \tobetastar \lambda x.b}$.\\
+  %-----------------------------
+Proof in the same manner as the previous theorems without the need of a
+subinduction because there is only one premise.
+\end{theorem}
+
 
 
 

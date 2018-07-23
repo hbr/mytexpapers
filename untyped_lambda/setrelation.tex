@@ -1,0 +1,173 @@
+\section{Inductive Sets and Relations}
+
+
+\begin{definition} The \emph{transitive closure} $\rplus{r}$ of a relation $r$ is
+  defined by the rules
+1.~$\rulev{r(a,b)}{\rplus{r}(a,b)}$,
+2.~$\rulev{\rplus{r}(a,b) \\ r(b,c)}{\rplus{r}(a,c)}$
+\end{definition}
+
+\begin{definition} The \emph{reflexive transitive closure} $\rstar{r}$ of a relation $r$ is
+  defined by the rules
+1.~$\rulev{}{\rstar{r}(a,a)}$,
+2.~$\rulev{\rstar{r}(a,b) \\ r(b,c)}{\rstar{r}(a,c)}$
+\end{definition}
+
+\begin{definition} The \emph{equivalence closure} $\reqv{r}$ of a relation $r$ is
+  defined by the rules
+  1.~$\rulev{}{\reqv{r}(a,a)}$,
+  2.~$\rulev{\reqv{r}(a,b)
+    \\ r(b,c)} {\reqv{r}(a,c)}$,
+  3.~$\rulev{\reqv{r}(a,b) \\ r(c,b)} {\reqv{r}(a,c)}$
+\end{definition}
+
+\begin{theorem}
+  All closures are increasing $r \subseteq r^c$, monotonic
+  $r \subseteq s \imp r^c \subseteq s^c$ and idempotent $r^{cc} = r$. Proof
+  e.g. for the reflexive transitive closure. TBD.
+\end{theorem}
+
+\begin{theorem}
+A relation $s$ which satisfies $r \subseteq s \subseteq r^c$ has the same closure
+as $r$ i.e. $r^c = s^c$. Proof:
+  \begin{itemize}
+  \item $r^c \subseteq s^c$ by monotonicity.
+  \item $s^c \subseteq r^c$: $s^c \subseteq r^{cc}$ by
+    monotonicity and then use idempotence to conclude $s^c \subseteq r^c$.
+  \end{itemize}
+\end{theorem}
+
+
+
+Theorems: $\rplus{r}$ is transitive, $\rstar{r}$ is transitive, $\reqv{r}$ is
+symmetric, $\rplus{r}\subseteq\rstar{r}$, $r$ reflexive $\imp \rplus{r} =
+\rstar{r}$.
+
+
+\begin{definition}
+  $a$ is a \emph{terminal element} of the relation $\to$ if it has no
+  successor i.e. $\forall b: \neglow a \to b$.
+\end{definition}
+
+\begin{definition}
+  $a$ is a \emph{terminating element} of the relation $\to$ if there is a path
+  to a terminal element $b$ i.e. $a \tostar b$.
+\end{definition}
+
+\begin{definition}
+A relation $\to$ is a \emph{diamond} if for all $a$, $b$ and $c$ there exists a $d$
+such that
+$
+  \begin{matrix}
+    a & \to & b \\
+    \downarrow & & \downarrow \\
+    c & \to & \exists d
+  \end{matrix}
+$
+\end{definition}
+
+
+\begin{definition}
+  A relation $r$ is \emph{confluent} if $\rstar{r}$ is a diamond.
+\end{definition}
+
+\begin{theorem} In a confluent relation $r$ all two $r$-equivalent elements
+  meet at some common element
+  $
+  \begin{matrix}
+    a & \reqv\to & b \\
+    & \rstar\searrow & \downarrow_*\\
+    & & \exists c
+  \end{matrix}
+  $.
+  Proof by induction on $a\reqv\to b$.
+  \begin{enumerate}
+
+  \item $a = b$. Trivial. Take $c = a$.
+
+  \item
+    $\begin{matrix}
+      a & \reqv\to & b & \to & c\\
+      & \rstar\searrow & \downarrow_*  & & \downarrow_*\\
+      & & d? & \rstar\to & e?
+    \end{matrix}$.
+    $d$ exists by induction hypothesis, $e$ exists by confluence.
+
+  \item
+    $
+    \begin{matrix}
+      a & \reqv\to & b & \gets & c\\
+      & \rstar\searrow & \downarrow_*  & & \downarrow_*\\
+      & & d? & \rstar\to & e?
+    \end{matrix}
+    $.
+    $d$ exists by induction hypothesis, $e$ exists by confluence.
+  \end{enumerate}
+\end{theorem}
+
+Definition: $a$ is a terminal element of $r$ if $\neg r(a,b)$ for all $b$.
+
+Definition: Set $\overline T$ of terminating elements of a relation $r$:
+$\rulev{a\in T}{a\in \overline T}$, $\rulev{r(a,b) \\ b\in\overline T}{a\in
+  \overline T}$ where $T$ is the set of terminal elements. By definition: For
+all terminating elements $a$ there is a terminal element $b$ with $\rstar
+r(a,b)$.
+
+Theorem: In a confluent relation all terminating elements have a unique
+terminal element. Proof: Suppose there are two terminal elements $b$ and $c$
+for the terminating element $a$. By definition there must be a $d$ such that
+$\begin{matrix} a & \tostar & b \\
+  \downarrow_* & & \downarrow_* \\
+  c & \tostar & d
+\end{matrix}$
+which contradicts the assumption that $b$ and $c$ are terminal.
+
+
+Theorem: In a confluent relation $r$ two $r$-equivalent terminating elements have the same
+terminal element.
+Proof: Assume $a \reqv\to b$ and $a \to_* c$ and $b \to_* d$
+where $c$ and $d$ are different terminal elements. Prove by induction on $a
+\reqv\to b$. Case (a): $a=b$. By the previous theorem the terminal element
+must be unique. Contradiction. Case (b): $a \reqv\to b$ and $b \to c$. By
+induction hypothesis $a$ and $b$ must have the same terminal element.
+
+Theorem: The reflexive transitive closure of a diamond is a diamond (stripe
+lemma).
+Proof:
+\begin{itemize}
+\item Lemma: Let $\to$ be a diamond. Then
+$\begin{matrix}
+a & \to_* & b \\
+\downarrow & & \downarrow \\
+c & \to_* & \exists d
+  \end{matrix}$.
+Proof by induction on $a \to_* b$.
+\begin{itemize}
+\item Case (a): $a = b$. Trivial, take $d=c$.
+\item Case (b):
+$\begin{matrix}
+a & \to_* & b & \to & c\\
+\downarrow & & \downarrow & & \downarrow\\
+d & \to_* & e? & \to & f?
+\end{matrix}$. $e$ exists by the induction hypothesis, $f$ exists because
+$\to$ is a diamond.
+\end{itemize}
+
+\item Theorem:  Let $\to$ be a diamond. Then
+$\begin{matrix}
+a & \to_* & b \\
+\downarrow_* & & \downarrow_* \\
+c & \to_* & \exists d
+  \end{matrix}$. Proof by induction on $a \to_* c$.
+\begin{itemize}
+\item Case (a): $a = b$. Trivial, take $d=c$.
+\item Case (b):
+$\begin{matrix}
+a & \to_* & b\\
+\downarrow_* & & \downarrow_* \\
+c & \to_* & e?  \\
+\downarrow & & \downarrow \\
+d & \to_* & f?
+\end{matrix}$. $e$ exists by induction hypothesis, $f$ exists by the previous lemma.
+\end{itemize}
+\end{itemize}

@@ -1,0 +1,177 @@
+\section{Lambda Terms}
+
+\begin{definition}
+  Let $x$ range over a countably infinite set of variable names then the set
+  of lambda terms is defined by the grammar $$t ::= x \mid t t \mid \lambda x. t$$.
+\end{definition}
+
+A lambda term is either a variable $x$, an application $a b$ (the term $a$
+applied to the term $b$) or an abstraction $\lambda x.a$.
+
+We use the convention that application is left associative i.e. $a b c$ is
+parsed as $(a b) c$.
+
+Nested lambda abstractions $\lambda x. \lambda y. \ldots . t$ are parsed as
+$\lambda x. (\lambda y. \ldots . t)$ and abbreviated as $\lambda x y \ldots . t$
+
+\begin{definition}
+  The set of free variables $FV(t)$ of a lambda term $t$ is defined by
+  $$FV(t) :=
+  \begin{cases} FV(x) &= \{x\} \\
+     FV(a b) &= FV(a) \cup FV(b) \\
+     FV(\lambda x. t) &= FV(t) - \{x\}
+   \end{cases}
+   $$
+\end{definition}
+
+The variable $x$ in the term $t$ of the abstraction $\lambda x.t$ is a bound
+variable. Bound variables can be renamed arbitrarily. We consider terms equal
+which have just different namings of bound variables. E.g. the term $\lambda
+x.x$ and $\lambda y.y$ are equal.
+
+\begin{definition}
+  The variable substitution $a[x:=t]$ is defined by
+  $$a[x:=t]~:=
+  \begin{cases} x[x:=t]  &:= t \\
+    y[x:=t] &:= y \quad \text{for}\quad x \ne y \\
+    (a b)[x:=t] &:= a[x:=t] \, b[x:=t] \\
+    (\lambda y.a)[x:=t]  &:= \lambda y. a[x:=t] \quad\text{for}\quad x \ne y
+    \land y \notin FV(t)
+   \end{cases}
+   $$
+\end{definition}
+
+Note: The condition on the last line is no restriction because we can always
+rename the bound variable $y$ to a fresh variable $z$ different from $x$ and
+not occuring free in $t$ since there are infinitely many variables available.
+
+Two subsequent substitutions do not commute. The terms $a[x:=b][y:=c]$ and
+$a[y:=c][x:=b]$ are different in general even if $x \ne y$ and
+$x \notin FV(c)$. Reason: Neither $a[x:=b][y:=c]$ nor $a[y:=c]$ do contain any
+$y$. But $b$ might contain $y$ and therefore $a[y:=c][x:=b]$ might contain
+$y$. In order to make the swapping correct we have to do the substitution
+$b[y:=c]$ before substituting the variable $x$ by $b$.
+
+\begin{theorem} Substitution lemma: Let $x \ne y$ and $x \notin
+  FV(c)$. Then $$a[x:=b][y:=c] = a[y:=c]\big[x:= b[y:=c]\big]$$. Proof by
+  induction on the structure of $a$. We use the abbreviations
+  $$\begin{array}{ll}
+      s_1(a) &:= a[x:=b][y:=c] \\
+      s_2(a) &:= a[y:=c]\big[x:=b[y:=c]\big]
+    \end{array}$$.
+  \begin{enumerate}
+  \item $a$ is a variable. Lets call it $z$. To prove $s_1(z) = s_2(z)$
+    \begin{itemize}
+    \item $z \ne x \land z \ne y$: $s_1(z) = z = s_2(z)$
+    \item $z = x \land z \ne y$: $s_1(z) = b[y:=c] = s_2(z)$
+    \item $z \ne x \land z = y$: $s_1(z) = c = s_2(z)$
+    \end{itemize}
+  \item $a$ is the application $t u$.
+    $$\begin{array}{llll}
+        s_1(t u) &=& s_1(t) s_1(u) & \text{definition of substitution}\\
+       &=& s_2(t) s_2(u) & \text{induction hypothesis}\\
+        &=& s_2(t u) & \text{definition of substitution}
+      \end{array}$$
+      with the abbreviations $s_1(v) := v[x:=b][y:=c]$ and $s_2(v) :=
+      v[y:=c][x:=b[y:=c]]$.
+    \item $a$ is the abstraction $\lambda z.t$.
+    $$\begin{array}{llll}
+        s_1(\lambda z. t) &=& \lambda z. s_1(t)  & \text{definition of substitution}\\
+       &=& \lambda z. s_2(t) & \text{induction hypothesis}\\
+        &=& s_2(\lambda z.t) & \text{definition of substitution}
+      \end{array}$$
+      with appropriate renaming of the bound variable $z$ in order to avoid
+      variable capture.
+  \end{enumerate}
+\end{theorem}
+
+
+
+
+
+\begin{definition} \emph{Beta reduction} $\tobeta$ is a relation defined over lambda
+  terms by the rules
+  \begin{enumerate}
+  \item $(\lambda x.a) b \tobeta a[x := b]$
+  \item $\rulev{a\tobeta b}{a c \tobeta b c}$
+  \item $\rulev{b\tobeta c}{a b \tobeta a c}$
+  \item $\rulev{a \tobeta b}{\lambda x.a \tobeta \lambda x.b}$
+  \end{enumerate}
+\end{definition}
+
+
+
+
+
+
+
+\begin{theorem}
+  $\tobetastar$ satisfies
+  $\ruleh{
+    a\tobetastar b \quad
+    c \tobetastar d}
+  {ac \tobetastar bd}$.
+  %---------------
+
+Proof by induction on $a \tobetastar b$.
+\begin{enumerate}
+\item
+  Goal $\ruleh{
+    a  \tobetastar a \quad
+    c  \tobetastar d}
+  {ac \tobetastar ad}$.\\
+  Proof by subinduction on $c \tobetastar d$
+  \begin{enumerate}
+  \item
+    Trivial by reflexivity.
+  \item
+    $\begin{bmatrix}
+      c   & \tobetastar      &  d_0  & \tobeta            &   d   \\
+           & \Downarrow_1 &         & \Downarrow_2 &        \\
+      ac & \tobetastar    & ad_0 & \tobeta              &   ad \\
+          &                       & \Downarrow_3 &           &        \\
+      ac &                      & \tobetastar   &              &   ad
+    \end{bmatrix}$.\\
+    $\Downarrow_1$ by induction hypothesis.
+    $\Downarrow_2$ by rule 3 of $\beta$reduction.
+    $\Downarrow_3$ by rule 2 of $\tobetastar$.
+  \end{enumerate}
+  \item
+    $\begin{bmatrix}
+      a   & \tobetastar      &  b_0  & \tobeta            &   b   \\
+           & \Downarrow_1 &         & \Downarrow_2 &        \\
+      ac & \tobetastar      & b_0d & \tobeta            &   ad \\
+           &                        & \Downarrow_3 &         &        \\
+      ac &                         & \tobetastar   &           &   ad
+    \end{bmatrix}$.\\
+    $\Downarrow_1$ by induction hypothesis.
+    $\Downarrow_2$ by rule 2 of $\beta$reduction.
+    $\Downarrow_3$ by rule 2 of $\tobetastar$.
+  \end{enumerate}
+\end{theorem}
+
+
+
+
+\begin{theorem}
+  $\tobetastar$ satisfies
+  $\ruleh{
+    a\tobetastar b \quad
+    c \tobetastar d}
+  {(\lambda x.a)c \tobetastar b[x:=d]}$.
+  %-----------------------------
+  \\ Proof in the same manner as the previous theorem with induction on
+  $a\tobetastar b$ and then a subinduction on $c \tobetastar d$ for the
+  reflexive case.
+\end{theorem}
+
+
+\begin{theorem}
+  $\tobetastar$ satisfies
+  $\ruleh{
+    a\tobetastar b}
+  {\lambda x.a \tobetastar \lambda x.b}$.\\
+  %-----------------------------
+Proof in the same manner as the previous theorems without the need of a
+subinduction because there is only one premise.
+\end{theorem}

@@ -21,11 +21,67 @@
   3.~$\rulev{\reqv{r}(a,b) \\ r(c,b)} {\reqv{r}(a,c)}$
 \end{definition}
 
+
+% Closures are increasing, monotonic and idempotent
+% -----------------------------------------
 \begin{theorem}
   All closures are increasing $r \subseteq r^c$, monotonic
-  $r \subseteq s \imp r^c \subseteq s^c$ and idempotent $r^{cc} = r$. Proof
-  e.g. for the reflexive transitive closure. TBD.
+  $r \subseteq s \imp r^c \subseteq s^c$ and idempotent $r^{cc} = r$.
+  \begin{proof}  We give a proof for the reflexive transitive closure. The
+    proofs for the other closures are similar.
+    \begin{itemize}
+    \item
+      Increasing: Goal $r(a,b) \imp \rstar{r}(a,b)$. By rule 1 we get
+      $\rstar{r}(a,a)$. The assumption $r(a,b)$ and rule 2 imply
+      $\rstar{r}(a,b)$.
+      %
+    \item
+      Monotonic: Goal $\ruleh{r \subseteq s, \, \rstar{r}(a,b)}
+      {\rstar{s}(a,b)}$. Prove by induction on $\rstar{r}(a,b)$.
+        \begin{enumerate}
+        \item Case $a=b$. Trivial by reflexivity of $\rstar{s}$.
+        \item $\rstar{r}(a,c)$ is valid by rule 2. We have to prove
+          $\rstar{s}(a,c)$.\\
+          $
+          \begin{matrix}
+            a  & \to_{\rstar{r}} & b   &  \to_r   & c \\
+                &    \Downarrow_1 & &  \Downarrow_2\\
+            a  & \to_{\rstar{s}} & b   &  \to_s  &  c
+          \end{matrix}$.\\
+          $\Downarrow_1$ is valid by the induction
+          hypothesis. $\Downarrow_2$ is valid by $r \subseteq s$. From the
+          last line and the rule 2 of the reflexive transitive closure we can
+          conclude $\rstar{s}(a,c)$.
+        \end{enumerate}
+    \item Idempotent: The equality of the relations $r^{**} = r^*$ needs a proof
+      of $r^{**} \subseteq r^*$ and a proof of $r^* \subseteq r^{**}$.
+      \begin{itemize}
+      \item $ r^* \subseteq r^{**}$ is valid because the
+        closure is increasing.
+      \item
+        Goal $r^{**}(a,b) \imp r^*(a,b)$. Proof by induction on $r^{**}(a,b)$.
+        \begin{enumerate}
+        \item
+          Case $a=b$. Trivial by reflexivity.
+        \item
+          $
+          \begin{matrix}
+            a  & \to_{r^{**}} & b   &  \to_{r^*}   & c \\
+                &    \Downarrow_1 & &  \Downarrow_2\\
+            a  & \to_{r^*} & b   &     \to_{r^*}   &  c
+          \end{matrix}$.
+          $\Downarrow_1$ is valid by the induction
+          hypothesis. $\Downarrow_2$ is trivial. $r^*$ is
+          transitive. Therefore the last line implies $r^*(a,c)$.
+        \end{enumerate}
+      \end{itemize}
+    \end{itemize}
+  \end{proof}
 \end{theorem}
+
+
+
+
 
 \begin{theorem}
 A relation $s$ which satisfies $r \subseteq s \subseteq r^c$ has the same closure

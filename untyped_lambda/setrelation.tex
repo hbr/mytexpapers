@@ -1,5 +1,6 @@
 \section{Inductive Sets and Relations}
 
+\subsection{Inductive Sets}
 
 \paragraph{Set Notation}
 
@@ -126,6 +127,8 @@ numbers $\mathbb{N}$ by the rules
 
 
 
+\subsection{Inductive Relations}
+
 
 \paragraph{Relations}
 
@@ -178,7 +181,34 @@ conclusion is marked red.
 \end{tikzpicture}
 
 
+We called $r^+$ the transitive closure of $r$, but the fact that $r^+$ is
+transitive needs a proof.
 
+\begin{theorem}
+  \label{plustransitive}
+  The transitive closure $r^+$ of the relation $r$ is transitive
+  i.e. $\ruleh{a \to_r^+ b, \, b \to_r^+ c} {a \to_r^+ c}$ is valid.
+  \begin{proof}
+    Assume $a \to_r^+ b$ and prove the goal $a \to_r^+ c$ by induction on
+    $b \to_r^+ c$.
+    \begin{enumerate}
+    \item
+      Goal $a \to_r^+ c$ assuming $b \to_r^+ c$ and that
+      $b \to_r^+ c$ is valid by rule 1 of the transitive closure.\\
+      Premise $b \to_r c$.\\
+      The goal is valid by the assumption $a \to_r^+ b$, the premise $b \to_r
+      c$ and rule 2 of the transitive closure.
+
+    \item
+      Goal $a \to_r^+d$ assuming $b \to_r^+ d$ and that
+      $b \to_r^+ d$ is valid by rule 2 of the transitive closure. \\
+      Premises $b \to_r^+ c$ and $c \to_r d$.\\
+      Induction hypothesis $a \to_r^+ c$.\\
+      The goal is valid by the induction hypothesis $a \to_r^+ c$, the premise
+      $c \to_r d$ and rule 2 of the transitive closure.
+    \end{enumerate}
+  \end{proof}
+\end{theorem}
 
 
 
@@ -208,7 +238,12 @@ Graphical representation of the rules:
   \draw[->,red]   (a) .. controls (2.5,1) and (3.5,1) ..  node[above] {$r^*$}    (c);
 \end{tikzpicture}
 
-
+\begin{theorem}
+  \label{startranstive}
+  The reflexive transitive closure $r^*$ of the relation $r$ is transitive
+  i.e. $\ruleh{a \to_r^* b, \, b \to_r^* c} {a \to_r^* c}$ is valid.
+  Proof similar to the proof of theorem~\ref{plustransitive}.
+\end{theorem}
 
 
 
@@ -249,6 +284,56 @@ Again a graphical representation of the rules:
   \draw[<-,blue] (b2) edge node[above]{$r$} (c2);
   \draw[->,red]   (a2) .. controls (4.5,1) and (5.5,1) .. node [above]{$r^\sim$} (c2);
 \end{tikzpicture}
+
+\begin{theorem}
+  \label{eqvtransitive}
+  The equivalence closure is transitive. Proof similar to the proof of
+  theorem~\ref{plustransitive}.
+\end{theorem}
+
+\begin{theorem}
+  The equivalence closure is symmetric i.e. $\ruleh {a \to_r^\sim b} {b
+    \to_r^\sim a}$.
+  \begin{proof}
+    We proof this theorem in 3 steps. First we proof two lemmas and then the
+    theorem by induction.
+    \begin{itemize}
+    \item Lemma 1: $\ruleh{a \to_r b}{a \to_r^\sim b}$. Proof. Assume $a \to_r
+      b$. We get $a \to_r^\sim a$ by rule 1 and then $a \to_r^\sim b$ by the
+      assumption and rule 2.
+    \item
+      Lemma 2: $\ruleh{a \to_r b}{b \to_r^\sim a}$. Proof. Assume $a \to_r b$.
+      We get $b \to_r^\sim b$ by rule 1 and then $b \to_r^\sim a$ by the
+      assumption and rule 3.
+    \item
+      $\ruleh {a \to_r^\sim b} {b \to_r^\sim a}$ by induction on
+      $a \to_r^\sim b$.
+      \begin{enumerate}
+      \item
+        Goal $a \to_r^\sim a$. Trivial by reflexivity.
+
+      \item
+        Goal $c \to_r^\sim a$ assuming that $a \to_r^\sim c$ is valid by rule 2 of
+        the equivalence closure.\\
+        Premises $a\to_r^\sim b$ and $b \to_r c$.\\
+        Induction hypothesis $b \to_r^\sim a$.\\
+        We get $c \to_r^\sim b$ by the second premise and lemma 2 and then $c
+        \to_r^\sim a$ by the induction hypothesis and transitivity of the
+        equivalence closure~\ref{eqvtransitive}.
+
+      \item
+        Goal $c \to_r^\sim a$ assuming that $a \to_r^\sim c$ is valid by rule 3 of
+        the equivalence closure.\\
+        Premises $a\to_r^\sim b$ and $c \to_r b$.\\
+        Induction hypothesis $b \to_r^\sim a$.\\
+        We get $c \to_r^\sim b$ by the second premise and lemma 1 and then $c
+        \to_r^\sim a$ by the induction hypothesis and transitivity of the
+        equivalence closure~\ref{eqvtransitive}.
+
+      \end{enumerate}
+    \end{itemize}
+  \end{proof}
+\end{theorem}
 
 
 
@@ -323,6 +408,7 @@ Again a graphical representation of the rules:
 
 
 \begin{theorem}
+  \label{sameclosure}
 A relation $s$ which satisfies $r \subseteq s \subseteq r^c$ has the same closure
 as $r$ i.e. $r^c = s^c$. Proof:
   \begin{itemize}
@@ -377,6 +463,8 @@ as $r$ i.e. $r^c = s^c$. Proof:
     \end{enumerate}
   \end{proof}
 \end{theorem}
+
+
 
 
 \paragraph{Weakly Terminating Elements}
@@ -445,12 +533,17 @@ definition. I.e. all terminal elements are strongly terminating.
 
 
 
-\paragraph{Diamonds and Confluence}
+\subsection{Diamonds and Confluence}
 
-In this section we define confluent relations. A relation is called confluent
-if starting from some object following the relation on different paths of
-arbitrary length there is always some other object where the two paths
-meet. This intuitive definition is made precise in the following.
+In this section we define diamonds and confluent relations.
+
+A relation is called confluent if starting from some object following the
+relation on different paths of arbitrary length there is always some other
+object where the two paths meet. This intuitive definition is made precise in
+the following.
+
+A diamond relation is a kind of a confluent relation where one step different
+paths can join withing one step.
 
 It turns out that confluence is a rather strong property of a relation. It
 guarantees that
@@ -459,6 +552,9 @@ guarantees that
 \item all paths to terminal elements end up at the same terminal
   element (i.e. terminal elements are unique)
 \end{itemize}
+
+A diamond relation is a superset of a confluent relation which has already the
+essential part of confluence. It turns out that a diamond relation is confluent.
 
 First we define formally the diamond property of a relation. The diamond
 property is intuitively a one step confluence.
@@ -652,3 +748,20 @@ uniquely into a statement of predicate logic.
     \end{itemize}
   \end{proof}
 \end{theorem}
+
+The last theorem stating that diamonds are confluent gives a way to prove that
+a relation $r$ is confluent. If $r$ is already a diamond we are ready since a
+diamond is confluent. If $r$ is not a diamond we try to find a diamond
+relation $s$ between $r$ and its reflexive transitive closure $r^*$ i.e. a
+relation $s$ which satisfies $r \subseteq s \subseteq r^*$. From the
+theorem~\ref{sameclosure} we know that $s$ and $r$ have the same reflexive
+transitive closure i.e. $r^* = s^*$. Since $s$ is a diamond, $s^*$ is a
+diamond as well and therefore $r$ is confluent.
+
+In order to find a diamond relation $s$ we can search for rules which are
+satisfied by $r^*$ and are intuitively the reason which let us assume that $r$
+is confluent. Then we can define $s$ inductively as the least relation
+satisfying the rules and hope that we can prove that $s$ is a diamond with $r
+/subseteq s$. Note that $s \subseteq r^*$ is satisfied implicitly by this
+approch since $r^*$ satisfies the rules and $s$ is the least relation
+satisfying the rules.

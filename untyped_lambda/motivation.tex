@@ -10,7 +10,7 @@ decidable. At the 1930 annual meeting of the \emph{Society of German
 know''.
 
 \noindent
-\begin{tikzpicture}[scale=0.85]
+\begin{tikzpicture}[scale=0.70]
   \def\pict#1#2#3#4{
     \node[fill=gray!20,text width=3.5cm,text centered] (#1) at #2
     {\scriptsize \includegraphics[width=3cm,height=4cm]{../img/#3} #4};
@@ -44,9 +44,17 @@ cannot be solved. Alonzo Church invented the lambda calculus and Alan Turing
 his automatic machine (today called Turing machine) which are both equivalent
 in expressiveness.
 
-The lambda calculus invented by Alonzo Church is remarkably simple. It
-consists just of variables, function applications and lambda abstractions. But
-the calculus is sufficiently powerful to express all computable functions and
+Although Church's lambda calculus has been published slightly before Alan
+Turing published his paper on automatic machines usually Turing machines are
+used define computability and decidability. Turing machines resemble more the
+structure of modern computers than lambda calculus. A programming language is
+called \emph{Turing complete} if all possible algorithms can be coded within
+the language. Nobody talks abount \emph{lambda complete}.
+
+However lambda calculus is a quite fascinating model of computation.  The
+lambda calculus invented by Alonzo Church is remarkably simple. It consists
+just of variables, function applications and lambda abstractions. But the
+calculus is sufficiently powerful to express all computable functions and
 decision procedures.
 
 Beside its expressive power lambda calculus is used as the theoretical base of

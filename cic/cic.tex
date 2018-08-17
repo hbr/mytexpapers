@@ -1,0 +1,213 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath,amsthm,amssymb,xcolor,graphicx,tikz,listings}
+\usepackage[pdftex]{hyperref}
+\usetikzlibrary{positioning}
+
+
+\def\imp{\Rightarrow}
+\def\ind{\text{Ind}}
+\def\abold{\mathbf{a}}
+\def\Abold{\mathbf{A}}
+\def\bbold{\mathbf{b}}
+\def\Bbold{\mathbf{B}}
+\def\fbold{\mathbf{f}}
+\def\Fbold{\mathbf{F}}
+\def\pbold{\mathbf{p}}
+\def\tbold{\mathbf{t}}
+\def\Tbold{\mathbf{T}}
+\def\ubold{\mathbf{u}}
+\def\Ubold{\mathbf{U}}
+
+\def\Prop{\mathbb{P}}
+\def\Set{\mathbb{S}}
+\def\Type{\mathbb{T}}
+
+\def\freevars{\text{FV}}
+\def\strictpos{\text{SP}}
+\def\case{\text{case}}
+\def\fix {\text{fix}}
+
+\newcommand{\ruleh}[2]{\begin{array}{c} #1 \\ \hline #2\end{array}}
+\newcommand{\rulev}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
+
+\theoremstyle{definition} \newtheorem{definition}{Definition}[section]
+\theoremstyle{definition} \newtheorem{theorem}[definition]{Theorem}
+\theoremstyle{definition} \newtheorem{lemma}[definition]{Lemma}
+
+
+\begin{document}
+
+
+\title{Calculus of Inductive Constructions}
+\author{Helmut Brandl \\ \scriptsize (firstname dot lastname at gmx dot net)}
+\date{}
+
+
+\maketitle
+
+\abstract{
+}
+
+\tableofcontents
+
+
+
+
+\section{Terms}
+\label{sec:terms}
+
+
+\paragraph{Sorts} Sorts are defined by the grammar
+$$ s  ::=  \Prop \mid \Set \mid \Type_i$$
+where $\Set$ is an abbreviation for $\Type_0$.
+
+\paragraph{Terms} Let $s$ range over sorts and $x$ range over variables then
+terms are defined by the grammar
+$$
+\begin{array}{llll}
+  t & ::= & s & \text{sort} \\
+    &\mid & x & \text{variable}\\
+    &\mid & t t &   \text{application}\\
+    &\mid & \lambda (x:t) t &\text{abstraction} \\
+    &\mid & \forall (x:t) t &\text{product} \\
+    &\mid & \case(t,t,\tbold) &\text{pattern match}\\
+    &\mid & \fix (i,\Fbold) & \text{fixpoint}
+\end{array}
+$$
+where $\Fbold = [(k_1,f_1,t_1,T_1), \cdots ]$ is an array of quadruples with
+the decreasing argument number $k_j$, the variable $f_j$, the term $t_j$ and
+its type $T_j$. The terms $t_j$ might contain any variable $f_l$.
+
+
+\paragraph{Positivity}
+
+\begin{definition}
+  The set $\strictpos_I$ of \emph{strict positive terms} over the variable $I$
+  is defined as the least set satisfying the rules
+  \begin{enumerate}
+
+  \item
+    $\ruleh{I \notin \freevars(T)}{T \in \strictpos_I}$
+
+  \item
+    $\ruleh{I \notin \freevars(\tbold)} {I \tbold \in \strictpos_I}$
+
+  \item
+    $\ruleh{I \notin \freevars(U),\: V \in \strictpos_I} {\forall(x:U) V \in
+      \strictpos_I}$
+  \end{enumerate}
+\end{definition}
+
+\begin{definition}
+  The set $P_I$ of \emph{positive terms} over the variable $I$ is
+  defined as the least set satisfying the rules
+  \begin{enumerate}
+  \item
+    $\ruleh{I \notin \freevars(\tbold)} {I \tbold \in P_I}$
+
+  \item
+    $\ruleh{U \in \strictpos_I,\: V \in P_I}  {\forall(x:U) V \in P_I}$
+  \end{enumerate}
+\end{definition}
+
+
+
+
+
+
+ \section{Inductive Definitions}
+\label{sec:inductivedefintions}
+
+We write an inductive definition as
+$$\ind(\Gamma_P, \Gamma_I, \Gamma_C)$$
+where
+$$
+\begin{array}{llll}
+  \Gamma_P &=& [p_1:P_1, \cdots , p_{n_p}:P_{n_p}]
+  &\text{Parameters}
+  \\
+  \Gamma_I &=& [I_1:T_{I1}, \cdots, I_{n_I}: T_{In_I}]
+  &\text{Inductive types}
+  \\
+  \Gamma_C &=& [\Gamma_{C1}, \cdots, \Gamma_{Cn_I}]
+  &\text{Constructors for each type}
+  \\
+  \Gamma_{Ci} &=& [c_{i1}:C_{i1}, \cdots, c_{in_{Ci}}: C_{in_{Ci}}]
+  &\text{Constructors for }I_i
+  \\
+  C_{ij} &=& \forall(\tbold:\Tbold) I \pbold \abold
+  & \text{Type of a constructor}
+  \\
+  n_P &:& \text{Number of parameters} \\
+  n_I &:& \text{Number of inductive types} \\
+  n_{Ci} &:& \text{Number of constructors for type } i
+\end{array}
+$$
+
+
+A valid inductive definition in the valid context $\Gamma$ must satisfy
+\begin{enumerate}
+\item
+  The context $\Gamma, \Gamma_P$ is valid i.e. each parameter type $P_i$ is a
+  valid type.
+
+\item $\Gamma, \Gamma_P \vdash T_{Ii}: s_i$ has to be valid for some sort
+  $s_i$ and the normal form of each $T_{Ii}$ must be an arity of the sort
+  $s_i$ i.e. has the form $\forall(\abold:\Abold) s_i$. $s_i$ is called the
+  sort of the $i$-th inductive type of the definition.
+
+\item
+  $\Gamma, \Gamma_P, \Gamma_I \vdash C_{ij}: s_{ij}$ is valid for some sort
+  $s_{ij}$, i.e. all constructor types $C_{ij}$ are valid types in a context
+  where all inductive types are assumed.
+
+\item Positivity: By definition the constructor types have the form
+  $C_{ij} = \forall(\tbold:\Tbold) I_i \pbold\abold$. Conditions:
+  \begin{enumerate}
+  \item The arguments $\abold$ must not contain any $I_l$.
+
+  \item All argument types $T_k$ of the array $\Tbold$ must satisfy one of
+    the conditions:
+    \begin{enumerate}
+
+    \item $T_k$ does not contain any inductive type $I_l$.
+
+    \item $T_k \to^* \forall(\ubold:\Ubold) I_m \pbold \abold$ for some $I_m$
+      and no $I_l$ occurs in $\abold$ nor in $\Ubold$.
+
+    \item $T_k \to^* J \pbold_J \abold_J$, $J$ is another inductive type which
+      is not defined mutually, no $I_l$ occurs in $\abold_J$ (but might occur
+      in $\pbold_J$) and all constructor types of $J$ instantiated with
+      $\pbold_J$ must satisfy the same positivity conditions.
+    \end{enumerate}
+  \end{enumerate}
+
+\item Predicativity: If the sort of an inductive type is $\Set$, then no
+  argument type of the constructors can be $\Set$ nor $\Type$. If this were
+  allowed, we could feed the inductive type as an argument into its own
+  constructor which would make the sort $\Set$ impredicative.
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+\section{Scratch}
+
+
+
+
+\begin{lstlisting}
+  Inductive tree (A:Type): Type :=
+  | Node: A -> list (tree A) -> tree A.
+
+  Inductive list (A:Type): Type :=
+  | Nil: list A
+  | Cons: A -> list A -> list A.
+\end{lstlisting}
+
+\end{document}

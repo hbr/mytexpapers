@@ -215,7 +215,7 @@ A lambda term representing the successor function takes a church numeral and
 returns a church numeral representing the successor of its argument. The
 signature of the successor function must be
 $$ \lambda x f a. \cdots$$
-where the first argument $x$ is the church nuberal and the result must be a
+where the first argument $x$ is the church numeral and the result must be a
 church numeral i.e. a function taking two arguments.
 
 We know that the term $x f a$ where $x$ represents a church numeral already
@@ -272,13 +272,13 @@ Note that, strictly spoken, the expression $a + b$ where $a$, $b$ and $(+)$
 are lambda terms is not a lambda term according to our syntactic
 definition. In order to be precise we have to define a lambda term
 ``$\text{plus}$'' which represents the addition function and write
-``$\text{plus}\, a \, b$'' instead of the expression $a + b$. However the latter
-is much better readable and therefore we use it to denote the more cumbersome
-expression ``$\text{plus}\, a \, b$''.
+``$\text{plus}\, a \, b$'' instead of the expression $a + b$. However the
+latter is better readable and therefore we use it to denote the more
+cumbersome expression ``$\text{plus}\, a \, b$''.
 
 For convenience we use in the following the notation $\mathbf{x}$ to represent
-$n$ arguments $x_1 x_2\ldots x_n$ and $g \mathbf{x}$ to represent to
-function application $g x_1 x_2 \ldots x_n$ i.e.
+$n$ arguments $x_1 x_2\ldots x_n$ and $g \mathbf{x}$ to represent the function
+application $g x_1 x_2 \ldots x_n$ i.e.
 $$
 \begin{array}{lll}
   \mathbf{x} & := x_1 x_2 \ldots x_n\\
@@ -394,7 +394,7 @@ term which represents the equality function for church numerals.
 
 
 \paragraph{Bounded Minimization} Let $g$ be a lambda term representing an
-$n'$-ary predicate over church numberals. Then it makes sense to ask, if there
+$n'$-ary predicate over church numerals. Then it makes sense to ask, if there
 is a least number $y$ which makes $g y \mathbf{x}$ $\true$. The expression
 $\mu^y g \mathbf{x}$ should return this least number or $y$ in case that there
 is no number strictly below $y$ such that $g y \mathbf{x}$ is satisfied.
@@ -503,7 +503,7 @@ $$
 \end{array}
 $$
 
-Note that this encoding of pairs of church numberals is completely different
+Note that this encoding of pairs of church numerals is completely different
 from the lambda term $\pair$ and its inverses $\fst$ and $\snd$. The latter
 functions encode pairs of arbitrary lambda terms and extract the first and the
 second component of the pair while the functions $\sigma_2$, $\sigma_{21}$ and

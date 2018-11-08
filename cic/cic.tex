@@ -12,21 +12,37 @@
 \def\Bbold{\mathbf{B}}
 \def\fbold{\mathbf{f}}
 \def\Fbold{\mathbf{F}}
+\def\Ibold{\mathbf{I}}
 \def\pbold{\mathbf{p}}
+\def\Pbold{\mathbf{P}}
 \def\tbold{\mathbf{t}}
 \def\Tbold{\mathbf{T}}
 \def\ubold{\mathbf{u}}
 \def\Ubold{\mathbf{U}}
+\def\xbold{\mathbf{x}}
+\def\ybold{\mathbf{y}}
+\def\zbold{\mathbf{z}}
+
+\def\Gammabold{\mathbf{\Gamma}}
+\def\Deltabold{\mathbf{\Delta}}
 
 \def\Prop{\mathbb{P}}
 \def\Set{\mathbb{S}}
 \def\Type{\mathbb{T}}
 
-\def\freevars{\text{FV}}
-\def\strictpos{\text{SP}}
+\def\Ar{\text{Ar}}
+\def\CT{\text{CT}}
 \def\case{\text{case}}
 \def\fix {\text{fix}}
+\def\FV{\text{FV}}
+\def\freevars{\text{FV}}
+\def\strictpos{\text{SP}}
+\def\Ind{\text{Ind}}
+\def\ind{\text{ind}}
+\def\Pos{\text{Pos}}
 
+\newcommand{\Induct}[2]{\mathbb{I}^#1_#2}
+\newcommand{\Con}[3]{\mathbb{C}^{#1 #2}_#3}
 \newcommand{\ruleh}[2]{\begin{array}{c} #1 \\ \hline #2\end{array}}
 \newcommand{\rulev}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
 
@@ -53,161 +69,354 @@
 
 
 
-\section{Terms}
+
+
+
+\section{Basic Definitions}
 \label{sec:terms}
 
 
+
+
 \paragraph{Sorts} Sorts are defined by the grammar
-$$ s  ::=  \Prop \mid \Set \mid \Type_i$$
-where $\Set$ is an abbreviation for $\Type_0$.
+$$ s  ::=  \Prop \mid \Type_i.$$
+We use $\Set$ is an abbreviation for $\Type_0$.
 
-\paragraph{Terms} Let $s$ range over sorts and $x$ range over variables then
-terms are defined by the grammar
+
+
+
+\paragraph{Terms} Let $s$ range over sorts, $x$ range over variables and $i$
+$j$ range over numbers. The terms are defined by the grammar
 $$
 \begin{array}{llll}
-  t & ::= & s & \text{sort} \\
-    &\mid & x & \text{variable}\\
-    &\mid & t t &   \text{application}\\
-    &\mid & \lambda (x:t) t &\text{abstraction} \\
-    &\mid & \forall (x:t) t &\text{product} \\
-    &\mid & \case(t,t,\tbold) &\text{pattern match}\\
-    &\mid & \fix (i,\Fbold) & \text{fixpoint}
+  t & ::= & s                    & \text{sort} \\
+    &\mid & x                    &\text{variable}\\
+    &\mid & t t                  &\text{application}\\
+    &\mid & \lambda x^t. t       &\text{abstraction} \\
+    &\mid & \Pi x^t. t           &\text{product} \\
+    &\mid & \Induct{i}{\ind}     &\text{$i$th inductive type of the family
+                                   $\ind$}\\
+    &\mid & \Con{j}{i}{\ind}     &\text{$j$th constructor of $i$th type of
+                                   the family $\ind$}\\
+    &\mid & \case(t,t,\tbold)    &\text{pattern match}\\
+    &\mid & \fix (i,\Fbold)      & \text{fixpoint}
 \end{array}
 $$
-where $\Fbold = [(k_1,f_1,t_1,T_1), \cdots ]$ is an array of quadruples with
-the decreasing argument number $k_j$, the variable $f_j$, the term $t_j$ and
-its type $T_j$. The terms $t_j$ might contain any variable $f_l$.
-
-
-\paragraph{Positivity}
-
-\begin{definition}
-  The set $\strictpos_I$ of \emph{strict positive terms} over the variable $I$
-  is defined as the least set satisfying the rules
-  \begin{enumerate}
-
-  \item
-    $\ruleh{I \notin \freevars(T)}{T \in \strictpos_I}$
-
-  \item
-    $\ruleh{I \notin \freevars(\tbold)} {I \tbold \in \strictpos_I}$
-
-  \item
-    $\ruleh{I \notin \freevars(U),\: V \in \strictpos_I} {\forall(x:U) V \in
-      \strictpos_I}$
-  \end{enumerate}
-\end{definition}
-
-\begin{definition}
-  The set $P_I$ of \emph{positive terms} over the variable $I$ is
-  defined as the least set satisfying the rules
-  \begin{enumerate}
-  \item
-    $\ruleh{I \notin \freevars(\tbold)} {I \tbold \in P_I}$
-
-  \item
-    $\ruleh{U \in \strictpos_I,\: V \in P_I}  {\forall(x:U) V \in P_I}$
-  \end{enumerate}
-\end{definition}
-
-
-
-
-
-
- \section{Inductive Definitions}
-\label{sec:inductivedefintions}
-
-We write an inductive definition as
-$$\ind(\Gamma_P, \Gamma_I, \Gamma_C)$$
 where
+\begin{itemize}
+\item
+  $\ind = (\Delta_P,\Delta_I,\Deltabold_C)$ a family of inductive types where
+  $\Delta_P$ represents the parameters of the family, $\Delta_I$ represents
+  the array of inductive types of the family and $\Deltabold_C$ represents for
+  each inductive type an array of constructor types,
+
+\item
+  $\Delta = [x_1:T_1, \,\cdots]$ is an array of variable declarations,
+
+\item $\Deltabold = [\Delta_1, \,\cdots]$ is an array of arrays of variable
+  declarations.
+
+\item $\Fbold = [x_1:T_1 := t_1/k_1, \,\cdots ]$ is an array of quadruples with
+  the variable $x_j$ and its type $T_j$, a definition term $t_j$ and the
+  decreasing argument number $k_j$, where the terms $t_j$ might contain
+  any variable $x_l$.
+\end{itemize}
+
+
+
+
+
+\paragraph{Reduction}We have beta reduction, pattern match and fixpoint
+reduction.
 $$
-\begin{array}{llll}
-  \Gamma_P &=& [p_1:P_1, \cdots , p_{n_p}:P_{n_p}]
-  &\text{Parameters}
-  \\
-  \Gamma_I &=& [I_1:T_{I1}, \cdots, I_{n_I}: T_{In_I}]
-  &\text{Inductive types}
-  \\
-  \Gamma_C &=& [\Gamma_{C1}, \cdots, \Gamma_{Cn_I}]
-  &\text{Constructors for each type}
-  \\
-  \Gamma_{Ci} &=& [c_{i1}:C_{i1}, \cdots, c_{in_{Ci}}: C_{in_{Ci}}]
-  &\text{Constructors for }I_i
-  \\
-  C_{ij} &=& \forall(\tbold:\Tbold) I \pbold \abold
-  & \text{Type of a constructor}
-  \\
-  n_P &:& \text{Number of parameters} \\
-  n_I &:& \text{Number of inductive types} \\
-  n_{Ci} &:& \text{Number of constructors for type } i
+\begin{array}{lll}
+  (\lambda x^A.e) a &\triangleright  &e[x:=a] \\
+
+  \case(\Con{j}{i}{\ind}\pbold\abold,r,\fbold)
+                    &\triangleright   & f_j \abold \\
+  \fix(i,\Fbold) \abold (\Con{j}{k}{\ind} \bbold)
+                    &\triangleright
+               &t_i[f_j:=\fix(j,\Fbold)] \abold (\Con{j}{k}{\ind} \bbold)
 \end{array}
 $$
 
 
-A valid inductive definition in the valid context $\Gamma$ must satisfy
-\begin{enumerate}
-\item
-  The context $\Gamma, \Gamma_P$ is valid i.e. each parameter type $P_i$ is a
-  valid type.
 
-\item $\Gamma, \Gamma_P \vdash T_{Ii}: s_i$ has to be valid for some sort
-  $s_i$ and the normal form of each $T_{Ii}$ must be an arity of the sort
-  $s_i$ i.e. has the form $\forall(\abold:\Abold) s_i$. $s_i$ is called the
-  sort of the $i$-th inductive type of the definition.
 
-\item
-  $\Gamma, \Gamma_P, \Gamma_I \vdash C_{ij}: s_{ij}$ is valid for some sort
-  $s_{ij}$, i.e. all constructor types $C_{ij}$ are valid types in a context
-  where all inductive types are assumed.
 
-\item Positivity: By definition the constructor types have the form
-  $C_{ij} = \forall(\tbold:\Tbold) I_i \pbold\abold$. Conditions:
+
+
+\paragraph{Inductive Types}
+
+
+\begin{definition}
+  A positive term over the variable $P$ has the form
+  $\Pi \xbold^\Abold. P \bbold$ where $P$ does not occur in $\Abold$. The
+  product part might be empty.
+\end{definition}
+
+
+
+\begin{definition}
+  An arity of sort $s$ has the form $\Pi \xbold^\Abold. s$ where the product
+  part might be empty.
+\end{definition}
+
+
+\begin{definition}
+  A constructor type for the type variable $I$ representing an inductive type
+  has the form $\Pi \xbold^\Abold. I \abold$ where the product part might be
+  empty. The types $\Abold$ are called the argument types of the constructor
+  type.
+\end{definition}
+
+
+\begin{definition}
+  An inductive family $\ind = (\Delta_P,\Delta_I,\Deltabold_C)$ is valid if
+  the following conditions are satisfied:
   \begin{enumerate}
-  \item The arguments $\abold$ must not contain any $I_l$.
 
-  \item All argument types $T_k$ of the array $\Tbold$ must satisfy one of
-    the conditions:
-    \begin{enumerate}
+  \item In the inductve types $\Delta_I = [I_0:T_0,I_1:T_1,\cdots]$ all $T_i$
+    must convert to an arity of some sort. The types $\Tbold$ are the
+    inductive types of the family.
 
-    \item $T_k$ does not contain any inductive type $I_l$.
+  \item $|\Delta_I| = |\Deltabold_C|$ i.e. there is one constructor array for
+    each inductive type of the family.
 
-    \item $T_k \to^* \forall(\ubold:\Ubold) I_m \pbold \abold$ for some $I_m$
-      and no $I_l$ occurs in $\abold$ nor in $\Ubold$.
+  \item In the constructors $\Delta_{Ci} = [c_0:T_0,c_1:T_1,\cdots]$ for the
+    inductive type variable $I_i$ of the family, all types $T_j$ of the
+    constructors convert to the form $\Pi \xbold^\Abold. I_i\bbold$ i.e. a
+    constructor type for the variable $I_i$. In all constructor argument types
+    $\Abold$ all inductive type variables $\Ibold$ either do not occur or
+    occur only positively.
 
-    \item $T_k \to^* J \pbold_J \abold_J$, $J$ is another inductive type which
-      is not defined mutually, no $I_l$ occurs in $\abold_J$ (but might occur
-      in $\pbold_J$) and all constructor types of $J$ instantiated with
-      $\pbold_J$ must satisfy the same positivity conditions.
-    \end{enumerate}
+
+  \item A constructor argument whose type contains an inductive type variable
+    of the family are called recursive arguments.
+
+  \item A parameter of the family is called a positive parameter if it occurs
+    in all constructor argument types of all constructors of the family only
+    positively.
+
+  \item A constructor argument whose type contains a positive parameter is a
+    potentially recursive argument.
   \end{enumerate}
-
-\item Predicativity: If the sort of an inductive type is $\Set$, then no
-  argument type of the constructors can be $\Set$ nor $\Type$. If this were
-  allowed, we could feed the inductive type as an argument into its own
-  constructor which would make the sort $\Set$ impredicative.
-\end{enumerate}
+\end{definition}
 
 
 
 
 
 
+\section{Draft}
+
+\begin{definition}
+  Subtype relation:
+  \begin{enumerate}
+
+  \item $\Prop < \Type_0$
+
+  \item $\Type_i < \Type_{i'}$
+
+  \item $\ruleh{T < U}{\forall x^A.T < \forall x^A.U}$
+  \end{enumerate}
+\end{definition}
+Note: The subtype relation only applies to sorts and arities. Arbitrary sort
+terms are not included. Reduction shall be reflected in the typing relation.
+
+\begin{definition}
+  Typing relation:
+
+  \begin{itemize}
+  \item Basics:
+    \begin{description}
+
+    \item[Axiom] $[]\vdash \Prop:\Type_0 \quad\quad
+      []\vdash \Type_i: \Type_{i'}$
+
+    \item[Variable]
+      $\ruleh{\Gamma\vdash T: s}{\Gamma,x:T\vdash x:T}$
+
+    \item[Weaken]
+      $\ruleh{
+        \Gamma\vdash A:B \\
+        \Gamma\vdash T: s}
+      {\Gamma,x:T\vdash A:B}$
+
+    \end{description}
+  \item Product formation:
+    \begin{description}
+    \item[Product-$\Prop$]
+      $\ruleh
+      {\Gamma\vdash A:s \quad \Gamma,x:A\vdash B:\Prop}
+      {\Gamma\vdash \Pi x^A.B : \Prop}$
+
+    \item[Product-$s$]
+      $\ruleh
+      {\Gamma\vdash A:s \quad \Gamma,x:A\vdash B:s}
+      {\Gamma\vdash \Pi x^A.B : s}$
+
+    \end{description}
+
+  \item Functions:
+    \begin{description}
+    \item[Application]
+      $\ruleh
+      {\Gamma\vdash f: \Pi x^A.B \quad \Gamma\vdash a : A}
+      {\Gamma\vdash f a: B[x:=a]}$
+
+    \item[Abstraction]
+      $\ruleh
+      {\Gamma\vdash \Pi x^A.B : s \quad \Gamma,x:A\vdash e: B}
+      {\Gamma\vdash \lambda x^A.e : \Pi x^A.B}$
+    \end{description}
+
+  \item Inductive families
+    \begin{description}
+    \item[Ind-Type]
+      $$\rulev
+      {\ind = (\Delta_P, \Delta_I, \Deltabold_C) \text{ is valid}
+        \\
+        \forall i. \Gamma,\Delta_P\vdash I_i : T_i
+        \\
+        \forall ij. \Gamma,\Delta_P,\Delta_I \vdash c_{ji}:C_{ji}
+      }
+      {\Gamma\vdash \Induct{i}{\ind}
+        : \Pi \ybold^\Pbold . T_i}$$
+
+    \item[Constructor]
+      $$\rulev
+      {\forall k. \Gamma\vdash \Induct{k}{\ind} : \Pi \ybold^\Pbold . T_k
+      }
+      {\Gamma\vdash \Con{j}{i}{\ind}:
+        \Pi\ybold^\Pbold. C_{ji}[I_k:= \Induct{k}{\ind}]}$$
+    \end{description}
+
+
+  \item Reduction, expansion and subtyping:
+    \begin{description}
+    \item [Reduction]
+      $\ruleh{\Gamma \vdash t:T \quad T \to U}{\Gamma\vdash t:U}$
+
+    \item [Expansion]
+      $\ruleh
+      {\Gamma \vdash t:U \quad T \to U \quad\Gamma\vdash T:s}
+      {\Gamma\vdash t:T}$
+
+    \item [Subtype]
+      $\ruleh
+      {\Gamma \vdash t:T \quad T < U}
+      {\Gamma\vdash t:U}$
+    \end{description}
+  \end{itemize}
+\end{definition}
+
+The product formation rule of PTS says
+$\frac{r(s_1,s_2,s_3;\, \Gamma\vdash A:s_1;\: \Gamma,x:A\vdash
+  B:s_2}{\Gamma\vdash (\Pi x:A.B): s_3}$. The calculus of constructions has
+the rule $r(*,*,*)$. This allows me using the first and the second line to
+derive the third. However I had a typo in my post. The type in the third line
+had been missing which I added now.
+
+\begin{definition}
+  Classification of terms:
+  \begin{enumerate}
+
+  \item An arity is a term of the form $\Pi \xbold^\Abold.s$ where $s$ is
+    a sort. The product part might be empty. I.e. all sorts are arities.
+
+  \item A sort term is a term which reduces to an arity.
+
+  \item A type term is a term whose type is a sort term.
+
+  \item An object term is a term whose type is a type term.
+  \end{enumerate}
+\end{definition}
+
+With this definition all inductive types are type terms because their types
+reduce to an arity i.e. they are type terms. This implies that all terms of
+the form $\Induct{i}{\ind}$ are type terms. And all terms of the form
+$\Con{j}{i}{\ind}$ object terms because their types are type terms.
 
 
 
 \section{Scratch}
 
 
+$[\![x+1]\!], (\!|x|\!)$.
 
+{\scriptsize\texttt{1234567890 Inductive}}
 
-\begin{lstlisting}
-  Inductive tree (A:Type): Type :=
-  | Node: A -> list (tree A) -> tree A.
+{\scriptsize\tt 123456789 123456789 123456789 123456789 123456789 123456789 123456789}
 
-  Inductive list (A:Type): Type :=
-  | Nil: list A
-  | Cons: A -> list A -> list A.
+\lstset{
+  morekeywords={Inductive,all,class,create,end},
+  keywordstyle=\color{blue}
+}
+
+\lstdefinelanguage{coq}
+{ basicstyle=\footnotesize\tt,
+  columns=flexible,
+  keywords={Inductive,Definition,Proof},
+  keywordstyle=\color{blue}
+}
+
+\lstdefinelanguage{alba}
+{ basewidth=0.45em,
+  basicstyle=\scriptsize\tt,
+  %columns=flexible,
+  keywords={all,class,create,end},
+  keywordstyle=\color{blue}
+}
+
+\lstnewenvironment{alba} {\lstset{language=alba}} {}
+
+\begin{alba}
+  class
+      List(A)
+  create
+      []
+      (^) (A,List(A))
+  end
+
+  class
+      (*) (A:Any, r:Endorelation(A)): Endorelation(A)
+  create
+      reflexive(a:A): (*r)(a,a)
+      next(a,b,c:A):  (*r)(a,b) -> r(b,c) -> (*r)(a,c)
+  end
+\end{alba}
+
+{\footnotesize
+  \begin{lstlisting}[
+    basewidth=0.45em,
+    basicstyle=\scriptsize\ttfamily,
+    columns=fixed]
+ 123456789 123456789 123456789 123456789 123456789 123456789 123456789
+    Inductive tree (A:Type): Type :=
+    | Node: A -> list (tree A) -> tree A.
+
+    Inductive list (A:Type): Type :=
+    | Nil:  list A
+    | Cons: A -> list A -> list A.
+
+    Inductive star (A:Type) (r:Endorelation A): Endorelation A :=
+    | start: forall a, star A r a a
+    | next:  forall a b c, star A r a b -> r b c -> star A r a c
+
+    class
+        (*) (A:Any): Endorelation(A) -> Endorelation(A)
+    create
+        start(a:A): (*r)(a,a)
+        next(a,b,c:A): (*r)(a,b) -> r(b,c) -> (*r)(a,c)
+    end
+    -- without names
+    class
+        (*) (A:Any): Endorelation(A) -> Endorelation(A)
+    create
+        all(a:A) (*r)(a,a)
+        all(a,b,c:A) (*r)(a,b) -> r(b,c) -> (*r)(a,c)
+    end
 \end{lstlisting}
-
+}
 \end{document}

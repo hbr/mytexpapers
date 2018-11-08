@@ -1,0 +1,282 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath,amsthm,amssymb,xcolor,graphicx,tikz,listings}
+\usepackage[pdftex]{hyperref}
+\usetikzlibrary{positioning}
+
+\input{texdef}
+
+\begin{document}
+
+
+\title{Typed Lambda Calculus}
+\author{Helmut Brandl \\ \scriptsize (firstname dot lastname at gmx dot net)}
+\date{}
+
+
+\maketitle
+
+\abstract{
+}
+
+\tableofcontents
+
+
+
+
+\newpage
+\section{Pure Type Systems}
+
+Convention: We use $s,s_1,s_2,\ldots$ to range over sorts,
+$x,y,z,\ldots,x_1,x_2,\ldots$ to range over variables, $\alpha,\beta,\ldots$
+to range over type variables and arbitrary letters $a,b,c,t,u,v,A,B,C,\ldots$
+to range over arbitrary terms. Capital letters are used preferable to range
+over terms which are meant to represent types.
+
+\begin{definition}
+  Typed lambda terms are defined by the grammar
+  $$
+  \begin{array}{llll}
+    t &::=& s                 &\text{sort}
+    \\
+      &\mid& x                &\text{variable}
+    \\
+      &\mid& t t              &\text{application}
+    \\
+      &\mid& \lambda x^t.t    &\text{abstraction}
+    \\
+      &\mid& \Pi x^t.t        &\text{product}
+  \end{array}
+  $$
+  where $s$ ranges over sorts, $x$ ranges over variables and $t$ ranges over
+  terms.
+\end{definition}
+
+
+\begin{definition}
+  The reduction relation $\reduce$ is defined as the compatible closure
+  of
+  $$
+  (\lambda x^A. e) a \reduce e[x:=a]
+  $$
+\end{definition}
+
+
+
+
+
+\begin{definition}
+  The set of kinds is defined inductively by the rules
+  \begin{enumerate}
+
+  \item $s \in \Kinds$
+
+  \item $\ruleh{k \in \Kinds}{\Pi x^A.k \in \Kinds}$
+
+  \item $\ruleh
+    {k \in \Kinds \quad l \reduce k}
+    {l \in \Kinds}$
+  \end{enumerate}
+
+\end{definition}
+
+
+
+\begin{definition}
+  The set of Types is defined inductively by the rules
+  \begin{enumerate}
+
+  \item $\alpha \in \Types$
+
+  \item $\ruleh{B \in \Types}{\Pi x^A.B \in \Types}$
+
+  \item $\ruleh
+    {U \in \Types \quad T \reduce U}
+    {T \in \Types}$
+  \end{enumerate}
+
+\end{definition}
+
+Note that the set $\Kinds$ and the set $\Types$ are just syntactical
+categories. There is no guarantee that the terms in these sets are wellformed
+according to any typing relation. The terms just satisfy some syntax rules.
+
+
+\begin{definition}
+  A context $\Gamma = [x_1:T_1, \ldots, x_n:T_n]$ is a list of variables
+  together with their types. The types $T_i$ are lambda terms. No duplicate
+  variables are allowed. We use the notation
+  $\Gamma,x:T = [x_1:T_1, \ldots, x_n:T_n, x:T]$ to introduce the new fresh
+  variable $x$ with its type $T$ into the context $\Gamma$.
+\end{definition}
+
+
+
+
+
+\begin{definition}
+  A pure type system has a set of sorts $S$, a set of axioms
+  $\{(s_1,s_2), \ldots\}$ and a set of rules $\{(s_1,s_2,s_3), \ldots \}$ and
+  the inductively defined typing relation $\Gamma \vdash t: T$ where $\Gamma$
+  is a context and $t$ and $T$ are terms.
+  \begin{description}
+
+  \item[Axiom] $$\ruleh{ \text{axiom}(s_1,s_2)}{\Gamma \vdash s_1:s_2}$$
+
+  \item[Variable]
+    $$\ruleh{\Gamma \vdash A:s\quad x \notin \Gamma}{\Gamma,x:A \vdash x:A}$$
+
+
+  \item[Weaken]
+    $$\ruleh
+    {\Gamma \vdash A:s \quad  \Gamma \vdash t:T   \quad x \notin \Gamma}
+    {\Gamma,x:A \vdash t:T}$$
+
+
+  \item[Product]
+    $$\ruleh
+    {\Gamma \vdash A:s_1 \quad
+      \Gamma,x:A \vdash B:s_2 \quad
+      \text{rule}(s_1,s_2,s_3)}
+    {\Gamma \vdash \Pi x^A . B : s_3}
+    $$
+
+  \item[Abstraction]
+    $$\ruleh
+    {\Gamma \vdash \Pi x^A.B: s \quad
+      \Gamma,x:A \vdash e:B
+    }
+    {\Gamma \vdash \lambda x^A.e : \Pi x^A . B}
+    $$
+
+  \item[Application]
+    $$\ruleh
+    {\Gamma \vdash f: \Pi x^A.B \quad
+      \Gamma \vdash a:A
+    }
+    {\Gamma \vdash f a : B[x:=a]}
+    $$
+
+  \item[Type Reduction]
+    $$\ruleh
+    {\Gamma \vdash t: T \quad
+      \Gamma\vdash U: s \quad
+      (T \reduce U) \lor (U \reduce T)
+    }
+    {\Gamma \vdash t: U}
+    $$
+  \end{description}
+\end{definition}
+
+
+
+
+
+
+\begin{theorem} Substitution Lemma
+  $$
+  \rulev
+  {\Gamma\vdash a:A
+    \\
+    \Gamma,x:A,\Delta\vdash t:T
+  }
+  {\Gamma,\Delta[x:=a] \vdash t[x:=a] : T[x:=a]}
+  $$
+  \begin{proof} Assume $\Gamma\vdash a:A$ and proof the goal by induction on
+    $\Gamma,x:A,\Delta\vdash t:T$. We use the abbreviation $V' := V[x:=a]$.
+    \begin{description}
+    \item[Product]
+      $$
+      \begin{array}{l|l}
+        \Gamma,x:A,\Delta\vdash B:s_1
+        & \Gamma,\Delta' \vdash B': s_1
+        \\
+        \Gamma,x:A,\Delta,y:B \vdash C:s_2
+        & \Gamma,\Delta',y:B' \vdash C': s_2
+        \\
+        \hline
+        \Gamma,x:A,\Delta \vdash \Pi y^B.C: s_3
+        & \Gamma,\Delta' \vdash (\Pi y^B.C)': s_3
+      \end{array}
+      $$
+    \end{description}
+    TBD!!!!!?????
+  \end{proof}
+\end{theorem}
+
+
+\begin{theorem} The type $T$ of a term $t$ is either a sort or its type is a
+  sort
+  $$
+  \ruleh
+  {\Gamma \vdash t:T}
+  {\exists s. T = s \lor \Gamma\vdash T:s}.
+  $$
+
+  \begin{proof}
+    By induction on $\Gamma\vdash t:T$.
+    \begin{description}
+
+    \item[Axiom] Trivial.
+
+
+    \item[Variable]
+      $\ruleh
+      {\Gamma\vdash B:s}
+      {\Gamma,x:B \vdash x:B}
+      $. Trivial, witness $s$.
+
+    \item[Weaken]
+      $$
+      \begin{array}{l|l}
+        \Gamma \vdash A:s &
+        \\
+        \Gamma \vdash t:T & \exists s. T = s \lor \Gamma \vdash T:s
+        \\
+        \hline
+        \Gamma,x:A \vdash t:T   & \exists s.
+                                  T = s \lor \Gamma,x:A \vdash T:s
+      \end{array}
+      $$
+      The goal is a consequence of the induction hypothesis and an
+      application of the weakening rule in case $\Gamma\vdash T:s$.
+
+    \item[Product] Trivial, because the type of a product is always a sort.
+
+    \item[Abstraction] Trivial, because the type of an abstraction is a
+      product whose type is always a sort.
+
+    \item[Application]
+      $$
+      \begin{array}{l|l}
+        \Gamma\vdash f:\Pi x^A.B & \exists s. \Pi x^A.B = s \lor
+                                   \Gamma\vdash \Pi x^A.B: s
+        \\
+        \Gamma\vdash a:A
+        \\
+        \hline
+        \Gamma\vdash f a:B[x:=a] & \exists s. B[x:=a] = s \lor
+                                   \Gamma\vdash B[x:=s]: s
+      \end{array}
+      $$
+      The type of a product is always a sort. Therefore
+      $\Gamma\vdash \Pi x^A.B : s $ must be valid for some sort $s$. The
+      product can only be formed if $\Gamma,x:A \vdash B:s$ is valid for some
+      sort $s$. \emph{MISSING THEOREM!!}. Since substitution does not change
+      the type we get $B[x:=a]: s$.
+    \item[Reduction]
+      $$
+      \begin{array}{l|l}
+        \Gamma\vdash t:T \\
+        \Gamma\vdash U: s \\
+        (T \reduce U) \lor (U \reduce T) \\
+        \hline
+        \Gamma\vdash t:U & \exists s. U = s \lor \Gamma\vdash U:s
+      \end{array}
+      $$
+      Trivial by second premise.
+    \end{description}
+  \end{proof}
+\end{theorem}
+
+
+\end{document}

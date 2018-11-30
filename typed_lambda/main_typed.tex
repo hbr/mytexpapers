@@ -26,10 +26,12 @@
 \newpage
 \section{Pure Type Systems}
 
+\subsection{Terms}
+
 Convention: We use $s,s_1,s_2,\ldots$ to range over sorts,
 $x,y,z,\ldots,x_1,x_2,\ldots$ to range over variables, $\alpha,\beta,\ldots$
 to range over type variables and arbitrary letters $a,b,c,t,u,v,A,B,C,\ldots$
-to range over arbitrary terms. Capital letters are used preferable to range
+to range over arbitrary terms. Capital letters are used preferably to range
 over terms which are meant to represent types.
 
 \begin{definition}
@@ -52,6 +54,83 @@ over terms which are meant to represent types.
 \end{definition}
 
 
+\subsection{Substitution}
+
+\begin{definition}
+  The expression $t[x:=a]$ substitutes in the term $t$ all free occurrences of
+  the variable $x$ by the term $a$. It is defined by
+  $$
+  t[x:=a] :=
+  \begin{cases}
+    s[x:=a] &:= s
+    \\
+    x[x:=a] &:= a
+    \\
+    y[x:=a] &:= y \quad\text{for } x \ne y
+    \\
+    (f \, t)[x:=a] &:= f[x:=a] \, t[x:=a]
+    \\
+    (\lambda y^B.e)[x:=a] &:= \lambda y^{B[x:=a]}. e[x:=a]
+    \quad y \text{ is fresh}
+    \\
+    (\Pi y^B.C)[x:=a] &:= \Pi y^{B[x:=a]}. C[x:=a]
+    \quad y \text{ is fresh}
+  \end{cases}
+  $$.
+
+  Note that bound variables in lambda abstractions and products must be chosen
+  to be fresh i.e. not to occuer outside the binder. If the bound variables
+  occur outside the binder, they have to be renamed into fresh variables
+  before doing the substitution.
+\end{definition}
+
+For every lambda term with subterms, substitution is done on all substerms
+separately. Care has to be taken when entering binders in abstractions and
+products. Before entering the binder it has to be made sure that the bound
+variable is renamed so that it does not occur outside the binder.
+
+
+\begin{lemma}
+  \label{doublesubstitution}
+  \emph{Double Substitution}:
+  $$
+  \ruleh
+  {x \neq y
+    \\
+    x \notin FV(b)
+  }
+  {t[x:=a][y:=b]\, = \, t[y:=b]\big[x:=a[y:=b]\big]}
+  $$
+  \begin{proof}
+    By induction on the structure of $t$.
+
+    The only interesting case is if $t$ is a variable e.g. $z$. The we have to
+    prove
+    $$ z[x:=a][y:=b]\, = \, z[y:=b]\big[x:=a[y:=b]\big].$$
+
+    Three cases are possible:
+    \begin{enumerate}
+    \item
+      $z \ne x \land z \ne y$: In this case no substitution takes place and we
+      have the trivial equality $z = z$.
+
+    \item $z = x$: Since $x \ne y$ we get $a = a$.
+
+    \item $z = y$: In that case we get $b = b$.
+    \end{enumerate}
+
+    If $t$ is an application, an abstraction or a product, the induction
+    hypothesis and the definition of substitution are sufficient to prove the
+    corresponding goal.
+  \end{proof}
+\end{lemma}
+
+
+
+
+
+\subsection{Reduction}
+
 \begin{definition}
   The reduction relation $\reduce$ is defined as the compatible closure
   of
@@ -60,9 +139,78 @@ over terms which are meant to represent types.
   $$
 \end{definition}
 
+Compatible closure means that the reduction of a subterm implies the reduction
+of the term. I.e. we have the following additional rules to define the
+reduction relation completely:
+$\ruleh {a \reduce b}{ac \reduce bc}$,
+$\ruleh {b \reduce c}{ab \reduce ac}$,
+$\ruleh {A \reduce B} {\lambda x^A.e \reduce \lambda x^B. e}$,
+$\ruleh {e \reduce f} {\lambda x^A.e \reduce \lambda x^A. f}$,
+$\ruleh {A \reduce B} {\Pi x^A.e \reduce \Pi x^B. e}$,
+$\ruleh {e \reduce f} {\Pi x^A.e \reduce \Pi x^A. f}$.
 
 
 
+\begin{lemma}
+  \label{reductionsubstitution}
+  \emph{Reduction Substitution}:
+  $$
+  \ruleh
+  {t \reduce u
+  }
+  {t[x:=a] \reduce u[x:=a]}
+  $$
+  \begin{proof} By induction on $t \reduce u$ where we use the abbreviation
+    $w' := w[x:=a]$ for any term $w$.
+
+    Let's first analyze the case that $t \reduce u$ is valid because of the
+    rule $(\lambda y^B.e) b \reduce e[y:=b]$.
+    $$
+    \begin{array}{llll}
+      ((\lambda y^B.e) b)'
+      &=& (\lambda y^{B'}. e') b'
+      &\text{definition of substitution}
+      \\
+      &\reduce & e'[y:=b'] &\text{reduction rule}
+      \\
+      &=& e[x:=a]\big[[y:=b[x:=a]\big]   &\text{abbreviation}
+      \\
+      &=& e[y:=b][x:=a]
+      &\text{double substitution~\ref{doublesubstitution}}
+      \\
+      &=& e[y:=b]'  &\text{abbreviation}
+    \end{array}
+    $$
+
+    Next we analyze the case $\ruleh{b \reduce c}{bd \reduce cd}$.
+
+    $$
+    \begin{array}{l|ll}
+      b \reduce c    & b' \reduce c' & \text{induction hypo}
+      \\ \hline
+      bd \reduce cd  & (bd)' \reduce (cd)' & \text{goal}
+    \end{array}
+    $$
+    The goal $(bd)' \reduce (cd)'$ is proved by the derivation
+    $$
+    \begin{array}{llll}
+      (bd)'
+      &=& b' d'        &\text{definition of substitution}
+      \\
+      &\reduce& c' d'  &\text{induction hypo}
+      \\
+      &=& (cd)'        &\text{definition of substitution}
+    \end{array}
+    $$
+
+    For the remaining rules where just subterms are substituted the proofs are
+    similar. The corresponding induction hypothesis with the definition of
+    substitution is sufficient to proof the goal.
+  \end{proof}
+\end{lemma}
+
+
+\subsection{Kinds and Types}
 
 \begin{definition}
   The set of kinds is defined inductively by the rules
@@ -101,6 +249,8 @@ categories. There is no guarantee that the terms in these sets are wellformed
 according to any typing relation. The terms just satisfy some syntax rules.
 
 
+\subsection{Contexts}
+
 \begin{definition}
   A context $\Gamma = [x_1:T_1, \ldots, x_n:T_n]$ is a list of variables
   together with their types. The types $T_i$ are lambda terms. No duplicate
@@ -109,9 +259,20 @@ according to any typing relation. The terms just satisfy some syntax rules.
   variable $x$ with its type $T$ into the context $\Gamma$.
 \end{definition}
 
+The substitution function can be extended to contexts $\Gamma[x:=a]$ by
+applying the substitution to each type in the context or formally
+$$
+\Gamma[x:=a] :=
+\begin{cases}
+  [][x:=a] &:= []
+  \\
+  (\Gamma,y:T)[x:=a] &:= \Gamma[x:=a],y:T[x:=a]
+\end{cases}
+$$
 
 
 
+\subsection{The Typing Relation}
 
 \begin{definition}
   A pure type system has a set of sorts $S$, a set of axioms
@@ -120,7 +281,7 @@ according to any typing relation. The terms just satisfy some syntax rules.
   is a context and $t$ and $T$ are terms.
   \begin{description}
 
-  \item[Axiom] $$\ruleh{ \text{axiom}(s_1,s_2)}{\Gamma \vdash s_1:s_2}$$
+  \item[Axiom] $$\ruleh{ \text{axiom}(s_1,s_2)}{[] \vdash s_1:s_2}$$
 
   \item[Variable]
     $$\ruleh{\Gamma \vdash A:s\quad x \notin \Gamma}{\Gamma,x:A \vdash x:A}$$
@@ -167,41 +328,265 @@ according to any typing relation. The terms just satisfy some syntax rules.
   \end{description}
 \end{definition}
 
+We use the following definitions:
+\begin{enumerate}
 
+\item A context $\Gamma$ is legal if $\Gamma \vdash t:T$ is valid for some $t$
+  and $T$.
+
+
+\item A term $A$ is legal if $\Gamma \vdash a:A$ is valid for some $\Gamma$
+  and $a$ or if $\Gamma\vdash A:T$ is valid for some $\Gamma$ and $T$.
+\end{enumerate}
 
 
 
 
 \begin{theorem} Substitution Lemma
+  \label{substitutionlemma}
   $$
   \rulev
-  {\Gamma\vdash a:A
+  { \Gamma \vdash a:A
     \\
-    \Gamma,x:A,\Delta\vdash t:T
+    \Gamma,x:A,\Delta \vdash t:T
   }
+  % --------------------------------------------
   {\Gamma,\Delta[x:=a] \vdash t[x:=a] : T[x:=a]}
   $$
-  \begin{proof} Assume $\Gamma\vdash a:A$ and proof the goal by induction on
-    $\Gamma,x:A,\Delta\vdash t:T$. We use the abbreviation $V' := V[x:=a]$.
+  \begin{proof}
+    We abbreviate $V[x:=a]$ by $V'$ where $V$ can be a term or a context.
+
+    The assertion $\Gamma,x:A,\Delta \vdash t:T$ is not very suited for doing
+    induction on. Therefore we reformulate the goal to
+    $$
+    \rulev{
+      \Gamma_0\vdash a:A
+      \\
+      \Gamma \vdash t : T
+    }
+    {\forall \Delta .
+      \rulev{\Gamma = \Gamma_0,x:A,\Delta}
+      {\Gamma_0,\Delta' \vdash t' : T'}
+    }
+    $$
+    which is equivalent to the original goal. Now we assume $\Gamma_0\vdash
+    a:A$ and do induction on $\Gamma \vdash t : T$.
+
     \begin{description}
+
+    \item[Axiom] The goal is vacuously satisfied because there is no $\Delta$
+      to satisfy $[] = \Gamma_0,x:A,\Delta$.
+
+    \item[Variable]
+      $$
+      \begin{array}{l|l}
+        \Gamma \vdash B:s
+        & \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash B' : s'} \quad(h_1)
+        \\
+        y \notin \Gamma
+        \\
+        \hline
+        \Gamma,y:B \vdash y:B
+        & \goalbg{
+          \forall \Delta .
+          \rulev
+          {\Gamma,y:B = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash y': B'}
+          }
+      \end{array}
+      $$
+
+      Now we assume $\Gamma,y:B = \Gamma_0,x:A,\Delta$ and do a case split on
+      the structure of $\Delta$.
+      \begin{enumerate}
+
+      \item Case $\Delta = []$. This is possible only for $\Gamma = \Gamma_0$,
+        $x=y$ and $A = B$. Since $x \notin \Gamma_0$ and by assumption
+        $\Gamma_0 \vdash a:A$ we can conclude that $x \notin \freevars(A)$ and
+        therefore $A = A'$ so that the goal $\Gamma_0 \vdash x': A'$ is
+        satisfied.
+
+      \item Case $\Delta = \Delta_0,y:B$. This implies
+        $\Gamma = \Gamma_0,x:A,\Delta_0$. If we feed $\Delta_0$ into the
+        induction hypothesis $(h_1)$ we get
+        $ \Gamma_0,\Delta_0' \vdash B': s'$. Since $y$ is fresh we have
+        $y' = y$. By using the \emph{variable} rule we get the final goal
+        $\Gamma_0,\Delta_0',y:B' \vdash y:B'$ i.e.
+        $\Gamma_0,\Delta' \vdash y:B'$ because $\Delta' = \Delta_0',y:B'$ by
+        definition.
+
+      \end{enumerate}
+
+
+    \item[Weaken]
+      $$
+      \begin{array}{l|l}
+        \Gamma \vdash B:s
+        & \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash B' : s'} \quad(h_1)
+        \\
+        y \notin \Gamma
+        \\
+        \Gamma \vdash t:T
+        & \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash t': T'} \quad (h_2)
+        \\
+        \hline % -------------------------------------
+        \Gamma,y:B \vdash y:B
+        & \goalbg{
+          \forall \Delta .
+          \rulev
+          {\Gamma,y:B = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash t': T'}
+          }
+      \end{array}
+      $$
+
+      Now we have to do the same case split on the structure of $\Delta$ as in
+      the \emph{variable} rule, this time however using the induction
+      hypothesis $(h_2)$ and the \emph{weakening} rule to prove the final
+      goal.
+
     \item[Product]
       $$
       \begin{array}{l|l}
-        \Gamma,x:A,\Delta\vdash B:s_1
-        & \Gamma,\Delta' \vdash B': s_1
+        \text{rule}(s_1,s_2,s_3)
         \\
-        \Gamma,x:A,\Delta,y:B \vdash C:s_2
-        & \Gamma,\Delta',y:B' \vdash C': s_2
+        \Gamma \vdash B:s_1
+        % hypo 1
+        & \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash B': s_1'} \quad (h_1)
+        \\
+        \Gamma,y:B \vdash C:s_2
+        % hypo 2
+        &  \forall \Delta .
+          \rulev
+          {\Gamma,y:B = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash C': s_2'} \quad (h_2)
         \\
         \hline
-        \Gamma,x:A,\Delta \vdash \Pi y^B.C: s_3
-        & \Gamma,\Delta' \vdash (\Pi y^B.C)': s_3
+        \Gamma \vdash \Pi y^B . C: s_3
+        & \goalbg{
+          \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash (\Pi y^B. C)' : s_3'}
+          }
       \end{array}
       $$
+
+      We assume $\Gamma = \Gamma_0,x:A,\Delta$ and want to derive the goal
+      $\Gamma_0,\Delta' \vdash \Pi y^{B'}. C' : s_3$.
+
+      In order to derive the goal by the \emph{product} rule we need the
+      premises $\Gamma_0,\Delta' \vdash B': s_1$ and
+      $\Gamma_0,\Delta',y:B' \vdash C': s_2$.
+
+      The first one can be derived directly from $(h_1)$. The second one can
+      be obtained for $(h_2)$ by using $\Delta,y:B'$ for $\Delta$. The premise
+      $\Gamma,y:B = \Gamma_0,x:A,\Delta,y:B$ of $(h_2)$ is then a direct
+      consequence of the assumption.
+
+    \item[Abstraction] Like the \emph{product} rule.
+
+    \item[Application]
+      $$
+      \begin{array}{l|ll}
+        \Gamma\vdash f: \Pi y^B.C
+        &\forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash f': (\Pi y^B.C)'} & (h_1)
+        \\
+        \Gamma \vdash b: B
+        &\forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash b': B'} & (h_2)
+        \\
+        \hline %-------------------------------------------
+        \Gamma \vdash f\, b : C[y:=b]
+        & \goalbg{
+          \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash (f b)': C[y:=b]'}
+          }
+      \end{array}
+      $$
+      Let's assume $\Gamma = \Gamma_0,x:A,\Delta$.
+
+      The hypotheses $(h_1)$ and $(h_2)$ let us derive
+      $\Gamma_0,\Delta' \vdash f': \Pi y^{B'}.C'$ and
+      $\Gamma_0,\Delta' \vdash b': B'$
+      which by the \emph{application} rule lead to
+      $\Gamma_0,\Delta' \vdash (f b)' : C'[y:=b']$.
+
+      The double substitution law~\ref{doublesubstitution}
+      $$
+      \begin{array}{llll}
+        C[y:=b]'
+        & = & C[y:=b][x:=a]       & \text{definition } V'\\
+        & = & C[x:=a]\big[y:=b[x:=a]\big] & \text{double substitution} \\
+        & = & C'[y:=b']           & \text{definition } V'
+      \end{array}
+      $$
+      derives the equality $C'[y:=b'] = C[y:=b]'$ which immediately proves the
+      goal.
+
+    \item[Reduction]
+      $$
+      \begin{array}{l|ll}
+        \Gamma \vdash t:T
+        & \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash t': T'} & (h_1)
+        \\
+        \Gamma \vdash U: s
+        & \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash U': s'} & (h_2)
+        \\
+        (T \reduce U) \lor (U \reduce T)
+        \\
+        \hline %-------------------------------------------
+        \Gamma \vdash t:U
+        & \goalbg{
+          \forall \Delta .
+          \rulev
+          {\Gamma = \Gamma_0,x:A,\Delta}
+          {\Gamma_0,\Delta' \vdash t': U'}
+          }
+      \end{array}
+      $$
+      From the substitution rule for reduction~\ref{reductionsubstitution} and
+      the premise $(T \reduce U) \lor (U \reduce T)$ we get
+      $(T' \reduce U') \lor (U' \reduce T')$.
+
+      Together with the two induction hypotheses $(h_1)$ and $(h_2)$ and
+      applying the \emph{reduction} rule we can immediately prove the goal.
     \end{description}
-    TBD!!!!!?????
   \end{proof}
 \end{theorem}
+
+
+
+
+
+
+
+
 
 
 \begin{theorem} The type $T$ of a term $t$ is either a sort or its type is a
@@ -261,8 +646,9 @@ according to any typing relation. The terms just satisfy some syntax rules.
       The type of a product is always a sort. Therefore
       $\Gamma\vdash \Pi x^A.B : s $ must be valid for some sort $s$. The
       product can only be formed if $\Gamma,x:A \vdash B:s$ is valid for some
-      sort $s$. \emph{MISSING THEOREM!!}. Since substitution does not change
-      the type we get $B[x:=a]: s$.
+      sort $s$. By the substition lemma~\ref{substitutionlemma} we get $\Gamma
+      \vdash B[x:=a]: s$.
+
     \item[Reduction]
       $$
       \begin{array}{l|l}
@@ -273,10 +659,126 @@ according to any typing relation. The terms just satisfy some syntax rules.
         \Gamma\vdash t:U & \exists s. U = s \lor \Gamma\vdash U:s
       \end{array}
       $$
-      Trivial by second premise.
+      Trivial by the second premise.
     \end{description}
   \end{proof}
 \end{theorem}
 
+
+
+
+\newpage
+\section{Draft Strong Normalization}
+
+\begin{theorem}
+  $$
+  \rulev
+  {\Gamma \vdash t : T}
+  {\SNS(\Gamma, t) \land \SNA(\Gamma,t)}
+  $$
+  where
+  $$
+  \SNS(\Gamma,t) :=
+  \forall x a A.
+  \rulev
+  {\Gamma \vdash x : A \\
+    \Gamma \vdash a: A
+  }
+  { t[x:=a] \in SN}
+  $$
+  $$
+  \SNA(\Gamma,t) :=
+  \forall \abold B.
+  \rulev
+  {\abold \in SN^* \\
+  \Gamma \vdash t \, \abold : B }
+  {t \, \abold \in SN}
+  $$
+
+  \begin{proof} By induction on $\Gamma \vdash t : T$
+    \begin{description}
+    \item[Axiom]
+      In the empty context there are no variables. Therefore $\SNA$ is
+      satisfied trivially. Furthermore a sort cannot be applied. Therefore
+      $\SNA$ is satisfied as well.
+
+    \item[Variable]
+      $$
+      \begin{array}{l | l | l}
+        \Gamma \vdash T:s \\
+        \hline
+        \Gamma,y:T \vdash y:T
+        & \left[
+          \rulev
+          {\Gamma,y:T \vdash x : A \\
+        \Gamma,y:T \vdash a: A  \\
+        a \in \SN
+        }
+        {y[x:=a] \in \SN}\right]
+        & \left[
+          \rulev
+          {\abold \in \SN^* \\
+        \Gamma,y:T \vdash y \, \abold : B}
+        {y \, \abold \in \SN}
+        \right]
+      \end{array}
+      $$
+      First goal. Case distinction $x=y \lor x\ne y$. Second goal, trivial.
+
+    \item[Weaken]
+      $$
+      \begin{array}{l | l | l}
+        \Gamma \vdash T:s \\
+        \Gamma \vdash u:U \\
+        \hline
+        \Gamma,y:T \vdash u:U
+        & \left[
+          \rulev
+          {\Gamma,y:T \vdash x : A \\
+        \Gamma,y:T \vdash a: A  \\
+        a \in \SN
+        }
+        {u[x:=a] \in \SN}\right]
+        & \left[
+          \rulev
+          {\abold \in \SN^* \\
+        \Gamma,y:T \vdash u \, \abold : B}
+        {u \, \abold \in \SN}
+        \right]
+      \end{array}
+      $$
+
+    \item[Product]
+
+    \item[Abstraction]
+      $$
+      \begin{array}{l | l | l}
+        \Gamma \vdash \Pi y^T.U : s\\
+        \Gamma,y:T \vdash e: U \\
+        \hline
+        \Gamma \vdash \lambda y^T. e : \Pi y^T.U
+        & \rulev
+          {\Gamma \vdash x: A \\
+        \Gamma \vdash a : A \\
+        a \in \SN}
+        {(\lambda y^T.e)[x:=a] \in \SN}
+        & \rulev
+          {\Gamma \vdash (\lambda y^T.e) \abold : B \\
+        \abold \in \SN^*}
+        {(\lambda y^T.e) \abold \in \SN}
+      \end{array}
+      $$
+
+
+    \item[Application]
+
+    \item[Reduction]
+
+    \end{description}
+
+  \end{proof}
+
+
+\end{theorem}
 
 \end{document}

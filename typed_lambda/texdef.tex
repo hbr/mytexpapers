@@ -1,4 +1,7 @@
 \def\Kinds{\text{Kinds}}
+\def\SN{\text{SN}}
+\def\SNA{\text{SNA}}
+\def\SNS{\text{SNS}}
 \def\Types{\text{Types}}
 
 \def\imp{\Rightarrow}
@@ -23,6 +26,8 @@
 
 \def\freevars{\text{FV}}
 
+\newcommand{\goalbg}[1]{\colorbox{lightgray}{$#1$}}
+
 \newcommand{\ruleh}[2]{\begin{array}{c} #1 \\ \hline #2\end{array}}
 \newcommand{\rulev}[2]{\begin{array}{l} #1 \\ \hline #2\end{array}}
 
@@ -30,3 +35,6 @@
 \theoremstyle{definition} \newtheorem{theorem}[definition]{Theorem}
 \theoremstyle{definition} \newtheorem{lemma}[definition]{Lemma}
 
+
+
+\renewcommand{\descriptionlabel}[1]{\hspace{5mm}\emph{#1}}

@@ -140,8 +140,208 @@ terms.
 
 \subsection{Saturated Sets}
 
+\begin{definition} % Base terms
+  The set of base terms $\BT$ is defined inductively by the rules
+  \begin{enumerate}
+
+  \item $x \in \BT$
+
+  \item $\ruleh{a \in \BT \quad b \in \SN}{a b \in \BT}$
+  \end{enumerate}
+\end{definition}
+
+
+\begin{lemma}
+  \label{BTSN}
+  Base terms are strongly normalizing $\ruleh{a \in \BT}{a \in \SN}$.
+\end{lemma}
+
+
+
+
+
+
+
+
+\begin{definition} % Key reduction
+  The relation \emph{key reduction} denoted by the binary operator
+  $\keyreduce$ is defined inductively by the rules
+  \begin{enumerate}
+
+  \item $(\lambda x^A.e) a \keyreduce e[x:=a]$
+
+  \item $\ruleh{a \keyreduce b}{a c \keyreduce b c}$
+  \end{enumerate}
+\end{definition}
+
+I.e. key reduction is possible only if the term is an application and the
+leftmost application is a redex.
+
+
+
+
+
+
+\begin{definition} % Saturation
+  A saturation of a set $S$ of terms $S^\sat$ is a closure defined inductively
+  by the rules
+  \begin{enumerate}
+
+  \item $\ruleh{a \in S}{a \in S^\sat}$
+
+  \item $\ruleh{a \in \BT}{a \in S^\sat}$
+
+  \item $\ruleh
+    {a \keyreduce b \quad a \in \SN \quad b \in S^\sat}
+    {a \in S^\sat}$
+  \end{enumerate}
+\end{definition}
+
+\begin{definition}
+  The set $\SAT$ of all saturated sets is defined by
+  $$
+  \SAT := \{S \mid  S^\sat \subseteq S \land S \subseteq \SN \}
+  $$
+\end{definition}
+
+
+\begin{lemma}
+  \label{SNinSAT}
+  The set of strongly normalizing terms is saturated i.e. $\SN \in \SAT$.
+
+  \begin{proof} Since $\SN \subseteq \SN$ is satisfied trivially we have to
+    prove the condition
+    $$
+    \ruleh{a \in \SN^\sat}{a \in \SN}
+    $$
+    which we prove by induction on $a \in \SN^\sat$.
+
+    \begin{enumerate}
+    \item $\ruleh{a \in \SN}{a \in \SN^\sat}$. Goal $a \in \SN$. Trivial by
+      assumption.
+
+    \item $\ruleh{a \in \BT}{a \in S^\sat}$. Goal $a \in \SN$. By lemma
+      \emph{base terms are strongly normalizing}~\ref{BTSN}
+
+    \item $\ruleh
+      {a \keyreduce b \quad a \in \SN \quad b \in S^\sat}
+      {a \in \SN^\sat}$: Goal $a \in \SN$. Trivial by assumption.
+    \end{enumerate}
+  \end{proof}
+\end{lemma}
+
+
+
+
+
+\subsection{Arities and Kinds}
+
+\begin{definition} % Arity
+  $\Ar$ is a relation such that $Ar(A,s,n)$ states that the term $A$ is an
+  aritiy of sort $s$ with $n$ arguments.
+
+  \begin{enumerate}
+
+  \item $\Ar(s,s,0)$
+
+  \item $\ruleh{\Ar(B,s,n)}{Ar(\Pi x^A.B, s, 1+n)}$
+  \end{enumerate}
+
+\end{definition}
+
+
+
+\begin{lemma}
+  \label{reductionpreservesarity}
+  Reduction preserves arity
+  $$
+  \rulev{\Ar(T,s,n) \\ T \reduce U}{\Ar(U,s,n)}
+  $$
+  \begin{proof}
+    MISSING!!!
+  \end{proof}
+\end{lemma}
+
+
+\begin{definition} % Kinds
+  The set of $\Kinds$ is defined inductively by the rules
+
+  \begin{enumerate}
+
+  \item $s \in \Kinds$
+
+  \item $\rulev{B \in \Kinds}{\Pi x^A.B \in \Kinds}$
+
+  \item $\rulev{U \in \Kinds \\ T \reduce U }{T \in \Kinds}$
+
+  \end{enumerate}
+\end{definition}
+
+
+\begin{lemma}
+  \label{kindisarity}
+  For every kind there exists a corresponding arity.
+  $$
+  \ruleh{T \in \Kinds}{\exists U s n. T \reducestar U \land \Ar(U,s,n)}
+  $$
+  \begin{proof}
+    By induction on $T \in \Kinds$.
+    \begin{enumerate}
+
+    \item $s \in \Kinds$: Trivial by $\Ar(s,s,0)$.
+
+
+    \item $\rulev{B \in \Kinds}{\Pi x^A.B \in \Kinds}$:
+      We get the induction hypothesis
+      $ \exists C s n. B \reducestar C \land \Ar(C,s,n)
+      $.
+      From this we can conclude $\Pi x^A.B \reducestar \Pi x^A.C$ and $\Ar(\Pi
+      x^A.C, s, n+1)$ which proves the goal.
+
+
+    \item $\rulev{U \in \Kinds \\ T \reduce U }{T \in \Kinds}$:
+
+      We get the induction hypothesis
+      $\exists Csn. U \reducestar C \land \Ar(C,s,n)$. From the second premise
+      $T \reducestar C$ is immediate which proves the goal
+    \end{enumerate}
+  \end{proof}
+\end{lemma}
+
+
+
+\begin{lemma}
+  In the calculus of constructions every term of type $\Box$ is a kind
+  $$
+  \ruleh {\Gamma \vdash K: \Box}{K \in Kinds}
+  $$
+\end{lemma}
+
+
 
 \subsection{Model Sets}
+
+\begin{definition} % Models
+  A model is either a set of terms or a function mapping a set of models to
+  another set of models
+\end{definition}
+
+
+\begin{definition} %nu relation
+  The relation $\nu$ between kinds and sets of models is defined inductively
+  by the rules
+  \begin{enumerate}
+  \item $\nu(s,\SAT)$
+
+  \item $\rulev
+    {A \notin \Kinds \\ \nu(B,\widehat{M}_B)}
+    {\nu(\Pi x^A.B, \widehat{M}_B)}$
+
+  \item $\rulev
+    { \nu(B,\widehat{M}_A) \\ \nu(B,\widehat{M}_B)}
+    {\nu(\Pi x^A.B, \{f \mid f: \widehat{M}_A \to \widehat{M}_B)\}}$
+  \end{enumerate}
+\end{definition}
 
 
 

@@ -113,15 +113,14 @@ variable is renamed so that it does not occur outside the binder.
   $$
 \end{definition}
 
-Compatible closure means that the reduction of a subterm implies the reduction
-of the term. I.e. we have the following additional rules to define the
-reduction relation completely:
-$\ruleh {a \reduce b}{ac \reduce bc}$,
+Compatible closure means that we can reduce a term by reducing one of its
+subterms. I.e. we have the following additional rules to define the reduction
+relation completely: $\ruleh {a \reduce b}{ac \reduce bc}$,
 $\ruleh {b \reduce c}{ab \reduce ac}$,
 $\ruleh {A \reduce B} {\lambda x^A.e \reduce \lambda x^B. e}$,
 $\ruleh {e \reduce f} {\lambda x^A.e \reduce \lambda x^A. f}$,
-$\ruleh {A \reduce B} {\Pi x^A.e \reduce \Pi x^B. e}$,
-$\ruleh {e \reduce f} {\Pi x^A.e \reduce \Pi x^A. f}$.
+$\ruleh {A \reduce B} {\Pi x^A.C \reduce \Pi x^B. C}$,
+$\ruleh {B \reduce C} {\Pi x^A.B \reduce \Pi x^A. C}$.
 
 
 
@@ -653,4 +652,3 @@ We use the following definitions:
     \end{description}
   \end{proof}
 \end{theorem}
-

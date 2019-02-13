@@ -1,0 +1,1228 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath,amsthm,amssymb,xcolor,graphicx,tikz,listings}
+\usepackage[pdftex]{hyperref}
+\usetikzlibrary{positioning}
+
+\def\blank{\llcorner\!\!\lrcorner}
+\def\class{\text{class}}
+\def\create{\text{create}}
+\def\cs{\text{cs}}
+\def\kwend{\text{end}}
+\def\GS{\,[\![\,}
+\def\GE{\,]\!]\,}
+\def\IS{\text{IS}}
+\def\IE{\text{IE}}
+\def\Natural{\text{Natural}}
+
+\newcommand{\group}[1]{\GS #1 \GE}
+\newcommand{\flatten}[1]{\overline{#1}}
+
+%Double Brackets
+% [[             [\![
+% ]]             ]\!]
+
+
+
+\lstdefinelanguage{alba}
+{ basewidth=0.45em,
+  basicstyle=\scriptsize\tt,
+  %columns=flexible,
+  keywords={all,case,class,create,else,end,if,inspect,then},
+  keywordstyle=\color{blue},
+  commentstyle=\color{brown},
+  morecomment=[l]{--},
+  morecomment=[n]{\{:}{:\}}
+}
+
+\lstnewenvironment{alba} {\lstset{language=alba}} {}
+
+\lstdefinelanguage{ocaml}
+{ basewidth=0.45em,
+  basicstyle=\scriptsize\tt,
+  %columns=flexible,
+  keywords={
+    and,assert,else,end,fun,functor,if,in,
+    let,module,mutable,rec,struct,then,type,val},
+  keywordstyle=\color{blue},
+  commentstyle=\color{brown},
+  morecomment=[n]{(*}{*)}
+}
+
+\lstnewenvironment{ocaml} {\lstset{language=ocaml}} {}
+
+
+
+
+\begin{document}
+
+
+
+\title{Pretty Printing}
+\author{Helmut Brandl \\ \scriptsize (firstname dot lastname at gmx dot net)}
+\date{}
+
+\maketitle
+
+\abstract{ }
+
+
+\tableofcontents
+
+
+
+
+
+
+
+\section{Examples}
+
+
+Let's consider a definition of an inductive data type in Alba.
+\begin{alba}
+    class
+        Natural
+    create
+        0
+        succ(Natural)
+    end
+\end{alba}
+%
+The programming language is not important here. You can certainly come up with
+a similar example in your favourite programming language.
+
+This printing nicely shows the structure of the definition. The declaration
+declares a type and two constructors to construct elements of the
+type. However the presentation of the declaration consumes a lot of lines.
+There are several possibilities to present the same declaration.
+%
+\begin{alba}
+    class Natural create 0; succ(Natural) end
+\end{alba}
+%
+or less compressed
+\begin{alba}
+    class Natural create
+        0
+        succ(Natural)
+    end
+\end{alba}
+%
+or
+%
+\begin{alba}
+    class Natural create
+        0; succ(Natural)
+    end
+\end{alba}
+%
+%
+The choice of the \emph{best} presentation is a matter of taste.  We have two
+tools to display structure:
+\begin{itemize}
+\item Line breaks
+\item Indentation
+\end{itemize}
+
+
+
+
+
+
+
+
+
+\section{Simple Layouts}
+
+In order to describe the structure of a document we use the following grammar
+$$
+\begin{array}{llll}
+  d &::=& T_s      & \text{text with the string } s
+  \\
+    & \mid & L     & \text{line break}
+  \\
+    & \mid & d\, d & \text{concatenation of two documents}
+  \\
+    & \mid & d^i   & \text{additional indentation $i$ after newlines in } d
+\end{array}
+$$%
+%
+The structure of the above declaration of the type of natural numbers
+\begin{alba}
+    class
+        Natural
+    create
+        0
+        succ(Natural)
+    end
+\end{alba}
+%
+can be expressed by the document
+$$
+\begin{array}{l}
+  T_\class \,
+  \\
+  (L \, T_\Natural)^4 \, \\
+  L \, T_\create \, \\
+  (L \, T_0 \, L \, T_\text{succ(Natural)})^4 \\
+  \, L \, T_\text{end}
+\end{array}
+$$%
+
+In a language with the 3 commands
+$$
+\begin{array}{llll}
+  c & ::= & T_s         & \text{text block with string } s
+  \\
+    & \mid &  L         & \text{line break}
+  \\
+    & \mid &  I_i     & \text{increment indentation by } i
+\end{array}
+$$%
+we can express the same document structure with the sequence of commands
+$$
+\begin{array}{l}
+  T_\class\, \\
+  I_4\, L\, T_\Natural\, I_{-4}\, \\
+  L\, T_\create\, \\
+  I_4\, L\, T_0\, L\, T_\text{succ(Natural)}\, I_{-4} \\
+  L\, T_\kwend
+\end{array}
+$$
+
+It is easy to convert a document into a list of commands
+{\def\coms{\text{list}}
+  $$
+  \text{\coms(d)} :=
+  \begin{cases}
+    \coms(T_s) &:= [T_s]
+    \\
+    \coms(L) &:= [L]
+    \\
+    \coms(x+y) &:= \coms(x) + \coms(y)
+    \\
+    \coms(x^i) &:= [I_i] + \coms(x) + [I_{-i}]
+  \end{cases}
+  $$
+}
+where the operator $+$ is used to express list concatenation.
+
+In order to convert a command sequence into actual printing commands we need a
+state which represents current indentation level. We process the commands as
+follows:
+\begin{enumerate}
+\item $T_s$: Print the string $s$.
+
+\item $L$: Print a line break plus $n$ blanks where $n$ is the current
+  indentation level.
+
+\item $I_i$: Increment the current indentation level by $i$ (or decrement in
+  case $i$ is negative.
+\end{enumerate}
+
+
+
+
+
+\section{Multiple Layouts}
+
+In the previous chapter we described a pretty printer which converted a
+sequence of the commands $T_s$, $L$ and $I_i$ into actual printing
+commands. The described pretty printer had no choices to make, just maintain
+an indentation level. This is due to the fact that our description of the
+layout did not allow any choices. The description of the layout forced a
+certain sequence of actual printing commands.
+
+
+
+
+\subsection{Description of Multiple Layouts}
+
+In order to add choices to the description of a layout we add two elements.
+
+\begin{itemize}
+
+\item Break hints: We treat each line break just as a break hint and add some
+  alternative string to the line break. The pretty printer has the choice to
+  print the line break as an actual line break followed by indentation blanks
+  or use the alternative string and print it on the current line.
+
+\item Grouping: We indicate to the pretty printer which parts of the document
+  can be squeezed on a line using the alternative text of the line breaks. All
+  line breaks belonging directly to the group (and not to subgroups) are
+  interpreted consistently i.e. either as effective line breaks or as its
+  alternative text.
+\end{itemize}
+
+Usually the alternative text of a line break is a blank. For programming
+language constructs we can choose a semicolon followed by a black as an
+alternative text.
+
+We use the following grammar to describe documents:
+$$
+\begin{array}{llll}
+  d &::=& T_s     & \text{text with the string } s
+  \\
+    & \mid & L_s  & \text{line break with alternative text } s
+  \\ & & &\text{default: blank}
+  \\
+    & \mid & d\, d & \text{concatenation of two documents}
+  \\
+    & \mid & d^i   & \text{additional indentation $i$
+                     after newlines in } d\, (i \ge 0)
+  \\
+    & \mid & \group{d} & \text{allow flattened version of $d$ as an
+                         alternative layout}
+\end{array}
+$$%
+and use the following function to flatten a document
+$$
+\flatten{d} :=
+\begin{cases}
+  \flatten{T_s} &:= T_s
+  \\
+  \flatten{L_s} &:= T_s
+  \\
+  \flatten{x\, y} &:= \flatten{x} \, \flatten{y}
+  \\
+  \flatten{x^i} &:= \flatten{x}
+  \\
+  \flatten{\group{x}} &:= \flatten{x}
+\end{cases}
+$$
+%
+Inside a flattened document all line breaks are substituted by the
+corresponding alternative text, all indentations can be removed because there
+are no more line breaks in the flattened document and all groups within a
+flattened document are no longer important and can be removed as well.
+
+In order to express the document as a command sequence we need one more
+command to start a group and one more command to end a group.
+%
+$$
+\begin{array}{llll}
+  c & ::= & T_s         & \text{text block with string } s
+  \\
+    & \mid &  L_s       & \text{line break with alternative text } s
+  \\ & & &\text{default: blank}
+  \\
+    & \mid &  I_i     & \text{increment indentation by } i
+  \\
+    & \mid &  \GS       & \text{start a group }
+  \\
+    & \mid &  \GE       & \text{end a group }
+\end{array}
+$$%
+We can convert a document to a command list by the function
+{\def\cs{\text{list}}
+  $$
+  \cs(d) :=
+  \begin{cases}
+    \cs(T_s) & := [T_s]
+    \\
+    \cs(L_s) & := [ L_s ]
+    \\
+    \cs(x\, y) & := \cs(x) + \cs(y)
+    \\
+    \cs(x^i)   & := [I_i] + \cs(x) + [I_{-i}]
+    \\
+    \cs(\group{x})  & := [\GS] + \cs(x) + [\GE]
+  \end{cases}
+  $$%
+  where $+$ is used for list concatenation.
+}
+%
+A command list is valid if there exists a document such that the document
+generates the command list. Therefore in a valid command list all groups and
+indentation blocks are correctly nested and the indentation levels are
+correctly incremented and decremented.
+
+
+\subsection{Example}
+
+We illustrate the description with our example of an inductive type for
+natural numbers
+\begin{alba}
+    class
+        Natural
+    create
+        0
+        succ(Natural)
+    end
+\end{alba}
+In order to make it possible that the whole declaration is displayed on a
+single line we have to enclose all into a group. If we want that the printing
+can start with
+\begin{alba}
+    class Natural create
+\end{alba}
+%
+we have to group these items as well. Furthermore we need one other group to
+have the possibility that all constructors can appear on a line.
+
+The following command sequence allows all these alternatives
+$$
+\begin{array}{l}
+  \GS \, \\
+  \quad \GS \, T_\class\,
+     I_4\, L\, T_\Natural\, I_{-4}\,
+  L\, T_\create\, \GE
+  \\
+  \quad I_4\, L\, \GS\,
+  T_0\, L_{;\blank} \, T_\text{succ(Natural)}\,
+  \GE\, I_{-4} \\
+  \quad L \, T_\kwend \, \\
+  \GE
+\end{array}
+$$
+
+
+
+\subsection{Selection of a Layout}
+
+In order to select a layout from a command sequence describing a multiple
+layout we have to decide which groups we want to flatten and which groups we
+do not want to flatten i.e. where all line breaks belonging directly to the
+group remain effective.
+
+We use the letter $F$ for a flattened group and the letter $E$ for a group
+with effective line breaks and a sequence of these letters e.g. $FEEEFF\ldots$
+to indicate which of the groups reading the command sequence left to right are
+flattened and which are effective. If a group is flattened, the inner groups
+are flattened as well.
+
+Let's see how a the sequence of letters controls the formatting of our example
+of natural numbers.
+\begin{enumerate}
+\item $FFF$: The first group is flattened. All other groups are inner groups
+  and are therefore flattened implicitly.
+  \begin{alba}
+    class Natural create 0; succ(Natural) end
+  \end{alba}
+
+\item $NFF$: The outer group is not flattened. The inner groups are flattened.
+  \begin{alba}
+    class Natural create
+        0; succ(Natural)
+    end
+  \end{alba}
+
+\item $NFN$: The outer group is not flattened. The first inner group is
+  flattened and the next is not flattened.
+  \begin{alba}
+    class Natural create
+        0
+        succ(Natural)
+    end
+  \end{alba}
+
+\item $NNF$: The outer group is not flattened. The first inner group is
+  not flattened and the next is flattened.
+  \begin{alba}
+    class
+        Natural
+    create
+        0; succ(Natural)
+    end
+  \end{alba}
+
+\item $NNN$: No groups are flattened.
+  \begin{alba}
+    class
+        Natural
+    create
+        0
+        succ(Natural)
+    end
+  \end{alba}
+
+\end{enumerate}
+
+If there are $n$ groups in a command sequence there are at most $2^n$ possible
+layouts. However the actual number of possibilities is ususally smaller,
+because the choices of inner groups are possible only if the outer group is
+effective.
+
+In our example there are 2 inner groups which have $2^2 = 4$
+possibilities. The outer group adds just one more possibility therefore we
+have $2^2 + 1 = 5$ possibilities to format the text.
+
+
+\subsection{Choosing the Best Layout}
+\label{bestlayout}
+
+Choosing the \emph{best} layout is equivalent to choosing a selection string
+of letters $F$ and $E$ of the groups encountered in the left to right reading
+of a command sequence. In this section we want to define the \emph{best}
+selection string.
+
+A selection string is complete if it decides all groups in the command
+sequence. A selection string is partial if it is a prefix (proper or not
+proper) of a complete selection string. Note that according to this definition
+a complete selection string is a partial selection string as well.
+
+An active group for a partial selection string is the first group in the
+command sequence which is not yet decided.
+
+A partial selection string is complete if it has no more active group. It is
+incomplete if there is an active group.
+
+An empty selection string is always a partial selection string for any command
+sequence.
+
+For an incomplete partial selection string we can partition the command
+sequence uniqulely into a head part, an active part and a tail part
+$$
+\text{cs} = h \quad a \quad t
+$$
+where $a$ is the longest subsequence which
+\begin{enumerate}
+\item contains the active group
+
+\item contains no effective line breaks to the left of the group (an effective
+  line break is a line break which does not belong to a flattened group)
+
+\item contains no line breaks to the right of the group
+\end{enumerate}
+We can illustrate the splitting graphically by
+{
+  \newcommand{\mline}[1]{\text{\rule{#1mm}{1mm}}}
+    $$%
+    \begin{array}{l}
+      \underbrace{
+      \begin{array}{l}
+        \mline{20} \\
+        \quad\mline{30}\\
+        \quad\mline{20}\\
+        \mline{20} \\
+        \quad\mline{30}L
+      \end{array}}_h
+      \\
+      \\
+      \underbrace{\text{\framebox[10mm][c]{i}}}_\text{indentation}
+      \underbrace{\quad \cdots \quad
+         \underbrace{\GS\cdots\GE}_\text{active group}
+      \quad \cdots \quad}_a \quad
+      \underbrace{L \quad \ldots}_t
+
+    \end{array}
+    $$
+}
+Due to the definitions we can make the following observations:
+\begin{itemize}
+\item The head part $h$ contains only groups which are already
+  decided. Therefore the layout is fixed. It can be empty or must end in an
+  effective line break.
+
+\item If the head part is empty, then the indentation level $i$ is $0$. If the
+  head part is not empty then its terminating line break belongs to a certain
+  indentation level $i$. Therefore the active part $a$ always starts on a
+  fresh line with a certain indentation level $i$.
+
+\item The active part $a$ might contain to the left of the active group some
+  groups which are already decided. But these groups must not contain
+  effective line breaks i.e. are either flattened or do not have line breaks.
+
+\item The active part $a$ might contain to the right of the active group some
+  other groups (or parts of them), but only parts of the groups which do not
+  have any line break.
+
+\item The tail part is either empty or starts with a line break.
+\end{itemize}
+
+
+Now we have to make the decision whether we flatten the active group or
+not. Recall that flattening the active group implies flattening of all inner
+groups implicitly.
+
+We certainly don't want the printed text to exceed the desired line width
+$w$. I.e. one condition is $i + |a| \le w$ where $|a|$ is the width of the
+flattened active region $a$. A further condition might be that the the printed
+text after the indentation does not exceed a certain ribbon width $r$
+i.e. $|a| \le r$. I.e. we flatten the active group only if
+$$
+i + |a| \le w \land |a| \le r
+$$
+is satisfied. Note that in case $w \le r$ the first condition implies the
+second.
+
+If we start with an empty selection string and decide the active group, then
+step by step we can construct a complete selection string for the given
+command sequence. The procedure terminates if there is no more active group to
+decide.
+
+Now let's pause for a moment and think whether the generated selection string
+is really the best one within the given possibilities. Even with the generated
+selection string is possible that the printed text violates either the line
+width or ribbon width criterion.
+
+If for a certain active group we have $i + |a| > w$ then we decide not to
+flatten the active group. But it can be the case that a prefix of $a$ which
+does not contain any line break already violates the line width criterion. In
+this specific case we get a printed text exceeding the line width.
+
+However there is no other choice with the given break hints and the given
+partion $cs = h \, a \, t$. I.e. our decision is certainly the \emph{locally}
+best decision.
+
+Next we can ask: \emph{Is there a better decision for the previous groups
+  which can improve our decision of the active group?}
+
+\begin{enumerate}
+
+\item Assume we make a different decision in the head region $h$.
+  \begin{itemize}
+  \item
+    Flatten a group which is already non-flattened can only make the situation
+    worse, because it could convert the effective line break ending $h$ into a
+    flattened line break which means squeezing more into the active area $a$.
+  \item
+    Make a flattened group non flattened does not change the situation because
+    the terminating effective line break remains.
+  \end{itemize}
+
+\item Assume we make a different decision in the active region $a$ before the
+  active group. These groups can only be flattened (or not containing line
+  breaks) and completely contained in the active region, because if not their
+  line breaks would be effective and they would start in the head region $h$.
+  \begin{itemize}
+  \item If these flattened groups contain no line breaks, then making them not
+    flattened does not change the situation.
+
+  \item Let's look at the flattened group closest to the active group
+    containing a line break. This group wouldn't be flattened its own active
+    region which must have contained part of the current active group (or
+    more) up to the next line break without violating the width
+    conditions. Therefore the previous group is flattened only if for the
+    current active group there remains a decision to not flatten without
+    violating the width conditions.
+
+  \item If non flattening the current active group does still violate the
+    width conditions then the situation cannot be improved by making a
+    different decision in the active area before the active group.
+  \end{itemize}
+\end{enumerate}
+This implies that our selection string is also \emph{globally} the best.
+
+Summary: The selection string decides all groups in a command sequence in a
+way that as many groups as possible are flattened. If the selection string
+generates a width violation, then no other selection string can avoid this
+violation.
+
+
+
+\subsection{Best Layout: Example}
+
+Consider the command sequence of our example.
+$$
+\begin{array}{l}
+  \GS \, \\
+  \quad
+  \GS \, T_\class\,
+     I_4\, L\, T_\Natural\, I_{-4}\,
+  L\, T_\create\, \GE
+  \\
+  \quad I_4\, L\,
+  \GS\, T_0\, L_{;\blank}\, T_\text{succ(Natural)}\, \GE\,
+  I_{-4} \\
+  \quad L \, T_\kwend \, \\
+  \GE
+\end{array}
+$$
+%
+We try to find a selection string for a line and ribbon width of $20$.
+
+Starting with an empty partial selection string we get a partition where $h$
+is empty, $a$ contains the whole command sequence and $t$ is empty. Since $|a|
+> 20$ the first group is not flattened and the next partial selection string
+is $E$.
+
+
+For the partial selection string $E$ we get the partition
+$$
+\begin{array}{lll}
+  h &=& \epsilon
+  \\
+  a &=& \GS \,
+        \underbrace{
+        \GS \, T_\class\,
+        I_4\, L\, T_\Natural\, I_{-4}\, L \, T_\create\, \GE
+        }_{\text{second group}} \, I_4
+  \\
+  t  & = &  L\,
+           \GS\, T_0\, L_{;\blank}\, T_\text{succ(Natural)}
+           \GE \, I_{-4}\, \\
+    & & L \, T_\kwend \, \GE
+  \\
+  \text{with} \\
+  i & = & 0
+  \\
+  |a| & = & 20 %5 + 1 + 7 + 1 + 6
+\end{array}
+$$%
+Since $i + |b| \le 20$ the second group is flattened and we get the selection
+string $EF$.
+
+For the partial selection string $EF$ we get the partition
+$$
+\begin{array}{lll}
+  h &=& \GS \,
+        \GS \, T_\class\,
+        I_4\, L\, T_\Natural\, I_{-4}\, L \, T_\create\, \GE \, I_4\, L
+  \\
+  a &=& \underbrace{
+        \GS \,T_0\, L_{;\blank}\, T_\text{succ(Natural)}\, \GE
+        }_{\text{third group}}
+        \, I_{-4}
+  \\
+  t & = & L \, T_\kwend \, \GE
+  \\
+  \text{with}
+  \\
+  i & = & 4
+  \\
+  |a| & = & 16%
+\end{array}
+$$%
+Since $i + |a| \le 20$ the line width is not exceeded and the third group is
+flattened. We get the complete selection string $E F F$ and the layout
+\begin{alba}
+    class Natural create
+        0; succ(Natural)
+    end
+\end{alba}
+
+
+
+\section{Efficient Algorithm}
+
+The definition of the best layout in chapter~\ref{bestlayout} can easily be
+converted into an algorithm. However this algorithm would be terribly
+inefficient in space and in time, because it would have to scan a complete
+active region and buffer the information until it can decide the active
+group. Since a decision not to flatten a group involves processing all
+internal groups again, the time behaviour could be exponential.
+
+In this chapter we descrive an algorithm which scans commands only once from
+left to right and buffers at most the information to print a single
+line.
+
+There are two facts we can exploit to generate a good algorithm.
+\begin{itemize}
+\item Commands in the active region before the first line break in the active
+  group cannot contain an effective line break. Therefore they can be printed
+  immediately without buffering.
+
+\item There is no need to scan the whole active region if the commands already
+  scanned exceed the line width. If a prefix of the active region exceeds the
+  line width if flattened, then the whole active region exceeds the line width
+  as well.
+\end{itemize}
+
+
+\paragraph{Definitions}
+\begin{enumerate}
+\item The \emph{active group} is first group not yet decided. The active group
+  might contain subgroups which are already decided to be flattened.
+
+\item The first line break contained directly or indirectly in the active
+  group but not in a flattened group is called the \emph{pending line break}.
+
+\item The group of the pending line break is called the \emph{pending group}.
+
+\item The pending group and all its supergroups up to the active groups are
+  called \emph{active groups}. Note that the outermost active group is
+  \emph{the} active group, the others are just active groups.
+
+\item Groups after the pending group are called
+  \emph{pending right groups} regardless if they are within the active group
+  or not.
+\end{enumerate}
+%
+The following graphic illustrates the situation on the current line using the
+definitions
+$$%
+  \underbrace{\text{\framebox[8mm][c]{i}}}_\text{indent}
+  \quad\ldots\quad
+  \underbrace{
+    \GS.
+    \underbrace{\GS .
+      \underbrace{L}_\text{pend L} .
+      \GE}_\text{pend grp}
+    \underbrace{\GS \ldots \GE}_\text{pend right grp}
+    . \GE
+  }_\text{active grp}
+  \quad\ldots
+$$%
+Groups in the active group to the left of the pending group are silently
+ignored by the algorithm because they don't have any line breaks (i.e. no
+decisions to be made). The pending line break is the first line break not
+flattened within the active group by definition.
+
+At the start of the algorithm no decisions are made and we are at the
+beginning of the command sequence. The indentation is zero. The first group is
+the active group. There are two modes: \emph{normal mode} and \emph{buffering
+  mode}. The algorithm starts in normal mode.
+
+
+\paragraph{Normal Mode} In normal mode the state consists of the following
+data:
+\begin{description}
+\item[$i$:] Indentation level of the current line.
+\item[$j$:] Indentation level at the current position.
+\item[$p$:] Position on the line.
+\item[$o_e$:] Open effective groups.
+\item[$o_a$:] Open active groups.
+\end{description}
+%
+Clearly at the start of the algorithm all counters are zero. Actions in normal
+mode on encoutering command $c$:
+\begin{enumerate}
+
+\item $c = \GS$: Increment $o_a$.
+
+\item $c = \GE$: Decrement $o_a$. Proper nesting is assumed, therefore $o_a
+  \ge 0$ is always valid.
+
+\item $c = I_k$: Increment $j$ by $k$ (or decrement in case of negative
+  $k$. Proper nesting is assumed, therefore $j \ge 0$ is valid.
+
+\item $c = T_s$: Print string $s$, update $p$.
+
+\item $c = L_s$, $o_a = 0$: Print newline, set $i$ to $j$ and $p$ to $j$.
+
+\item $c = L_s$, $o_a > 0$ and $s$ does not fit on the current line: All
+  active groups must be decided to be effective. Since there have not yet been
+  and line breaks, it there is no difference between effective and
+  flattening. However according to our definition the groups are
+  effective.
+
+  Actions: Print newline, set $i$ to $j$ and $p$ to $j$, increment $o_e$ by
+  $o_a$ and set $o_a$ to zero.
+
+\item $c = L_s$, $o_a > 0$ and $s$ does fit on the current line: Start
+  buffering mode and increment $p$ by the length of $s$, initialize the buffer
+  $b$ with $L_{s,j}$, set $p_e$ to $j$ and $o_{a0}$ to $o_a$ (description of
+  $b$, $p_e$ and $o_{a0}$ see below).
+\end{enumerate}
+
+\paragraph{Buffering Mode} We maintain the following additional data in
+buffering mode.
+\begin{description}
+\item[$p_e$:] Position on the line if all line breaks in the buffer were
+  effective. The counter $p$ is the position on the line if all line breaks in
+  the buffer were flattened.
+
+\item[$o_{a0}$:] Open active groups at the start of buffering mode.
+
+\item[$o_{pr}$:] Open pending right groups (zero at start of buffering mode).
+
+\item[$b$:] Buffer which starts with the pending line break i.e. $b = L_{s,k}
+  \ldots$.
+\end{description}
+%
+At the start of buffering mode we are in the pending group, because the
+encounter of the pending line break which is by definition in the pending
+group triggered the start of buffering mode. We stay in buffering mode until
+we can make a decision. Therefore we can leave the pending group and stay in
+buffering mode.
+\begin{itemize}
+\item At the start of buffering mode we are in the pending group. Therefore
+  $o_{a0} > 0$. We stay in the pending group as long as $o_{a0} \le
+  o_a$. Entering inner groups of the pending groups increases $o_a$.
+
+\item If enough groups are closed and the condition $o_a < o_{a0}$ is reached
+  we are to the left of the pending group. If $0 < o_a$ then we are still
+  within the active group. Opening groups and closing groups in this state
+  means entering or leaving groups to the right of the pending groups which
+  means that $o_{pr}$ has to be increased or decreased. Or we might leave an
+  active group in case $o_{pr} = 0$.
+
+\item As soon as the condition $o_a = 0$ is reached we are to the left of
+ the active group. Now opening or closing groups must update the counter
+ $o_{pr}$ as well.
+\end{itemize}
+Actions on encountering command $c$:
+\begin{enumerate}
+\item $c = \GS$: Update group counter according to the position within the
+  groups
+
+\item $c = \GE$: Update group counter according to the position within the
+  groups
+
+\item $c = I_k$: Update $j$ (same as in normal mode)
+
+\item $c = T_s$:
+  \begin{enumerate}
+  \item $s$ fits: Append $T_s$ to the buffer and update $p$ and $p_e$
+
+  \item $s$ does not fit: All groups enclosing the pending line break
+    (i.e. all active groups) must be made effective. The first group to the
+    right of the pending group becomes the new active group.
+
+    Actions: Flush the buffer, update the group counters, set $p$ to $p_e$ and
+    $i$ to $j$ and process the command in normal mode.
+  \end{enumerate}
+
+\item $c = L_s$ within the pending group:
+  \begin{enumerate}
+  \item $s$ fits: Append $L_{s,j}$ to the buffer, update $p$ and set $p_e$ to
+    $j$.
+
+  \item $s$ does not fit: All groups enclosing the pending line break
+    (i.e. all active groups) must be made effective. There is no new active
+    group because we are still within the pending group.
+
+    Actions: Flush the buffer with all line breaks effective, update the group
+    counters, set $p$ to $p_e$ and $i$ to $j$ and process the command in
+    normal mode.
+  \end{enumerate}
+
+\item $c = L_s$ outside the pending group: The pending group must be
+  flattened. There might be still some active groups open. These groups remain
+  active including the groups to the right of the pending group. If there are
+  no active groups open all groups to the left of the pending group become
+  active groups. I.e. the new open active groups are $o_a + o_{pr}$.
+
+  Actions: Flush the buffer with all line breaks flattened, update the group
+  counters and process the command in normal mode (which might reenter
+  buffering mode immediately).
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+\section{Implementation in Ocaml}
+
+
+\subsection{State}
+
+\begin{ocaml}
+type alternative_text = string
+type indent = int
+
+type command =
+  | Text of string
+  | Line of alternative_text * indent
+
+module State =
+  struct
+    type open_groups = int
+    type position = int
+
+    type t = {width: int;          (* desired maximal line width *)
+              ribbon: int;         (* desired maximal ribbon width *)
+              mutable line_indent: indent;
+              mutable current_indent: indent;
+              mutable p: position;
+              mutable pe: position; (* all line breaks in pending group
+                                       effective *)
+              mutable oe: open_groups;  (* effective *)
+              mutable oa: open_groups;  (* active *)
+              mutable oa0: open_groups; (* active at pending line break *)
+              mutable opr: open_groups; (* to the right of the pending group *)
+              mutable buf: command list
+             }
+
+
+    let start  (width:int) (ribbon:int): t =
+      assert (0 <= width);
+      assert (0 <= ribbon);
+      {width; ribbon;
+       current_indent = 0;   line_indent = 0;
+       p = 0;  pe = 0;
+       oe = 0; oa = 0; oa0 = 0; opr = 0;
+       buf = []
+      }
+
+    let normal (st:t): bool    = st.buf = []
+
+    let buffering (st:t): bool = st.buf <> []
+
+    let is_active_open (st:t): bool =
+      (* Is there still a group enclosing the pending line break open? *)
+      st.oa > 0
+
+    let is_pending_open (st:t): bool =
+      (* Is the group of the pending line break still open? *)
+      assert (0 < st.oa0);
+      let res = st.oa0 <= st.oa in
+      if res then
+        (assert (st.opr = 0); assert (st.oa > 0));
+      res
+
+    let fits (len:int) (st:t): bool =
+      let newpos = st.p + len
+      in
+      newpos <= st.width && newpos - st.line_indent <= st.ribbon
+
+    let out_text(len:length) (st:t): unit =
+      assert (normal st);
+      st.p <- st.p + len
+
+    let out_line (st:t): unit =
+      assert (normal st);
+      assert (st.oa = 0);  (* Otherwise we must start buffering. *)
+      assert (st.opr = 0); (* There is no active group. *)
+      st.p <- st.current_indent;
+      st.line_indent <- st.current_indent
+
+    let active_to_effective (st:t): unit =
+      assert (normal st);
+      assert (st.opr = 0);
+      assert (st.oa0 = 0);
+      st.oe <- st.oe + st.oa;
+      st.oa <- 0
+
+    let start_buffering (s:alternative_text) (st:t): unit =
+      assert (normal st);
+      assert (0 < st.oa);
+      let len = String.length s in
+      assert (fits len st);
+      st.buf <- Line (s, st.current_indent) :: st.buf;
+      st.oa0 <- st.oa;
+      st.p <- st.p + len;
+      st.pe <- st.current_indent
+
+    let flush (flatten:bool) (st:t): command list =
+      assert (buffering st);
+      if flatten then
+        (assert (not (is_pending_open st));
+         st.oa <- st.oa + st.opr;
+         st.opr <- 0;
+         st.oa0 <- 0)
+      else
+        ( (* All open groups enclosing the pending line break (the active
+             groups) become effective, all groups to the right of the pending
+             group become the new active groups. *)
+          st.oe <- st.oe + st.oa;
+          st.oa <- st.opr;
+          st.opr <- 0;
+          st.oa0 <- 0;
+          (* update p and line_indent *)
+          st.p   <- st.pe;
+          st.line_indent <- st.current_indent);
+      let buf = List.rev st.buf in
+      st.buf <- [];
+      buf
+
+    let buffer_text (s:string) (st:t): unit =
+      assert (buffering st);
+      assert (fits (String.length s) st);
+      st.buf <- Text s :: st.buf;
+      st.p <- st.p + len;
+      st.pe <- st.pe + len
+
+    let buffer_line (s:alternative_text) (st:t): unit =
+      assert (buffering st);
+      let len = String.length s in
+      assert (fits len st);
+      assert (is_pending_open st);
+      st.buf <- Line (s,st.current_indent) :: st.buf;
+      st.p   <- st.p + len;
+      st.pe  <- st.current_indent
+
+    let increment_indent (i:indent) (st:t): unit =
+      st.current_indent <- st.current_indent + i
+
+    let decrement_indent (i:indent) (st:t): unit =
+      assert (i <= st.current_indent);
+      st.current_indent <- st.current_indent - i
+
+    let open_group (st:t): unit =
+      if normal st then
+        (assert (st.opr = 0); st.oa <- st.oa + 1)
+      else (* buffering *)
+        if is_pending_open st then
+          st.oa <- st.oa + 1
+        else
+          st.opr <- st.opr + 1
+
+    let close_group (st:t): unit =
+      if normal st then
+        (assert (st.opr = 0);
+         if st.oa > 0 then
+           st.oa <- st.oa - 1
+         else
+           (assert (st.oe > 0); st.oe <- st.oe - 1)
+        )
+      else (* buffering *)
+        if is_pending_open st then
+          st.oa <- st.oa - 1
+        else if st.opr > 0 then
+          st.opr <- st.opr - 1
+        else
+          (assert (st.oa > 0); st.oa <- st.oa - 1)
+  end (* State *)
+\end{ocaml}
+
+
+
+
+\subsection{Pretty Printing Monad}
+
+For the pretty printing monad we need a printer monad with the signature
+\begin{ocaml}
+module type PRINTER =
+  sig
+    type 'a t
+    val make: 'a -> 'a t
+    val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+
+    val putc: char -> unit t
+    val put_string: string -> unit t
+    val fill: char -> int -> unit t
+  end
+\end{ocaml}
+%
+%
+The pretty printing monad is a module with the signature
+\begin{ocaml}
+module type PRETTY =
+  functor (P:PRINTER) ->
+  sig
+    type 'a t
+    val make: 'a -> 'a t
+    val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+
+    val text: string -> unit t
+    val line: alternative_text -> unit t
+    val nest: indent -> 'a t -> unit t
+    val group: 'a t -> unit t
+    val run:  int -> int -> 'a t -> unit P.t
+  end
+
+\end{ocaml}
+%
+%
+The implementation of the pretty printing monad:
+\begin{ocaml}
+module Make: PRETTY
+  =
+  functor (P:PRINTER) ->
+  struct
+    type state = State.t
+
+    type 'a t = state -> 'a P.t
+
+    let make (a:'a): 'a t = fun st -> P.make a
+
+    let (>>=) (m:'a t) (f:'a -> 'b t) (st:state): 'b P.t =
+      P.(m st >>= fun a -> f a st)
+
+    let print_nothing: unit P.t = P.make ()
+
+    let out_command (flatten:bool) (c:command): unit P.t =
+      match c with
+      | Text s ->
+         P.put_string  s
+      | Line (s, i) ->
+         if flatten then
+           P.put_string s
+         else
+           P.(putc '\n' >>= fun _ -> fill ' ' i)
+
+    let out_text (len:length) (s:string) (st:state): unit P.t =
+      State.out_text len st; P.put_string s
+
+
+    let flush (flatten:bool) (st:state): unit P.t =
+      let buf = State.flush flatten st in
+      let rec write buf =
+        match buf with
+        | [] ->
+           assert false (* buffer cannot be empty *)
+        | [c] ->
+           out_command flatten c
+        | c :: buf ->
+           P.(out_command flatten c >>= fun _ -> write buf)
+      in
+      write buf
+
+    let text (s:string) (st:state): unit P.t =
+      let len = String.length s
+      in
+      if State.normal st then
+        out_text len s st
+      else if State.fits len st then
+        (State.buffer_text s st; print_nothing)
+      else
+        (flush false >>= fun _ -> out_text len s) st
+
+    let line_normal (s:alternative_text) (st:state): unit P.t =
+      assert (State.normal st);
+      let len = String.length s
+      in
+      if State.is_active_open st && State.fits len st then
+        (State.start_buffering s st; print_nothing)
+      else
+        (State.active_to_effective st;
+         State.out_line st;
+         P.(putc '\n' >>= fun _ ->
+            fill ' ' st.State.line_indent))
+
+    let line_buffering (s:alternative_text) (st:state): unit P.t =
+      assert (State.buffering st);
+      if State.is_pending_open st then
+        if State.fits (String.length s) st then
+          (State.buffer_line s st; print_nothing)
+        else
+          (flush false >>= fun _ -> line_normal s) st
+      else
+        (flush true >>= fun _ -> line_normal s) st
+
+    let line (s:string) (st:state): unit P.t =
+      if State.normal st then
+        line_normal s st
+      else
+        line_buffering s st
+
+    let nest (i:int) (m:'a t): unit t =
+      let start st = State.increment_indent i st; print_nothing
+      and close st = State.decrement_indent i st; print_nothing
+      in
+      start >>= fun _ -> m >>= fun _ -> close
+
+    let group (m:'a t): unit t =
+      let start st = State.open_group st;  print_nothing
+      and close st = State.close_group st; print_nothing
+      in
+      start >>= fun _ -> m >>= fun _ -> close
+
+    let run (width:int) (ribbon:int) (m:'a t): unit P.t =
+      let st = State.start width ribbon in
+      P.(m st >>= fun _ ->
+         if State.buffering st then
+           flush true st
+         else
+           print_nothing)
+  end
+\end{ocaml}
+
+
+\begin{thebibliography}{99}
+
+\bibitem{chitil2001} Olaf Chitil. Pretty printing with lazy dequeues. ACM
+  Trans. Program. Lang. Syst.  27 (2005) 163–184
+
+\bibitem{hughes1995} John Hughes. The design of a pretty-printing library. In:
+  Advanced Functional Programming, First Int. Spring School, Springer-Verlag
+  (1995) 53–96
+
+\bibitem{oppen1980} Derek Oppen. Prettyprinting. ACM
+  Trans. Program. Lang. Syst. 2 (1980) 465–483
+
+\bibitem{peyton-jones1997} Simon Peyton Jones. Haskell pretty-printer library,
+  1997. Available from http://www.haskell.org/libraries/\#prettyprinting.
+
+\bibitem{wadler} Phil Wadler. A prettier printer. In: The Fun of
+  Programming. A Symposium in honour of Professor Richard Bird’s 60th
+  birthday, Oxford (2003)
+
+\end{thebibliography}
+
+\end{document}

@@ -7,6 +7,7 @@
 \def\class{\text{class}}
 \def\create{\text{create}}
 \def\cs{\text{cs}}
+\def\fits{\text{fits}}
 \def\kwend{\text{end}}
 \def\GS{\,[\![\,}
 \def\GE{\,]\!]\,}
@@ -41,8 +42,8 @@
   basicstyle=\scriptsize\tt,
   %columns=flexible,
   keywords={
-    and,assert,else,end,fun,functor,if,in,
-    let,module,mutable,rec,struct,then,type,val},
+    and,assert,do,done,else,end,for,fun,functor,if,in,include,
+    let,module,mutable,rec,sig,struct,then,to,type,val},
   keywordstyle=\color{blue},
   commentstyle=\color{brown},
   morecomment=[n]{(*}{*)}
@@ -198,7 +199,7 @@ It is easy to convert a document into a list of commands
     \\
     \coms(L) &:= [L]
     \\
-    \coms(x+y) &:= \coms(x) + \coms(y)
+    \coms(x y) &:= \coms(x) + \coms(y)
     \\
     \coms(x^i) &:= [I_i] + \coms(x) + [I_{-i}]
   \end{cases}
@@ -470,7 +471,7 @@ An empty selection string is always a partial selection string for any command
 sequence.
 
 For an incomplete partial selection string we can partition the command
-sequence uniqulely into a head part, an active part and a tail part
+sequence uniquely into a head part, an active part and a tail part
 $$
 \text{cs} = h \quad a \quad t
 $$
@@ -549,65 +550,6 @@ If we start with an empty selection string and decide the active group, then
 step by step we can construct a complete selection string for the given
 command sequence. The procedure terminates if there is no more active group to
 decide.
-
-Now let's pause for a moment and think whether the generated selection string
-is really the best one within the given possibilities. Even with the generated
-selection string is possible that the printed text violates either the line
-width or ribbon width criterion.
-
-If for a certain active group we have $i + |a| > w$ then we decide not to
-flatten the active group. But it can be the case that a prefix of $a$ which
-does not contain any line break already violates the line width criterion. In
-this specific case we get a printed text exceeding the line width.
-
-However there is no other choice with the given break hints and the given
-partion $cs = h \, a \, t$. I.e. our decision is certainly the \emph{locally}
-best decision.
-
-Next we can ask: \emph{Is there a better decision for the previous groups
-  which can improve our decision of the active group?}
-
-\begin{enumerate}
-
-\item Assume we make a different decision in the head region $h$.
-  \begin{itemize}
-  \item
-    Flatten a group which is already non-flattened can only make the situation
-    worse, because it could convert the effective line break ending $h$ into a
-    flattened line break which means squeezing more into the active area $a$.
-  \item
-    Make a flattened group non flattened does not change the situation because
-    the terminating effective line break remains.
-  \end{itemize}
-
-\item Assume we make a different decision in the active region $a$ before the
-  active group. These groups can only be flattened (or not containing line
-  breaks) and completely contained in the active region, because if not their
-  line breaks would be effective and they would start in the head region $h$.
-  \begin{itemize}
-  \item If these flattened groups contain no line breaks, then making them not
-    flattened does not change the situation.
-
-  \item Let's look at the flattened group closest to the active group
-    containing a line break. This group wouldn't be flattened its own active
-    region which must have contained part of the current active group (or
-    more) up to the next line break without violating the width
-    conditions. Therefore the previous group is flattened only if for the
-    current active group there remains a decision to not flatten without
-    violating the width conditions.
-
-  \item If non flattening the current active group does still violate the
-    width conditions then the situation cannot be improved by making a
-    different decision in the active area before the active group.
-  \end{itemize}
-\end{enumerate}
-This implies that our selection string is also \emph{globally} the best.
-
-Summary: The selection string decides all groups in a command sequence in a
-way that as many groups as possible are flattened. If the selection string
-generates a width violation, then no other selection string can avoid this
-violation.
-
 
 
 \subsection{Best Layout: Example}
@@ -695,513 +637,652 @@ flattened. We get the complete selection string $E F F$ and the layout
 
 \section{Efficient Algorithm}
 
-The definition of the best layout in chapter~\ref{bestlayout} can easily be
-converted into an algorithm. However this algorithm would be terribly
-inefficient in space and in time, because it would have to scan a complete
-active region and buffer the information until it can decide the active
-group. Since a decision not to flatten a group involves processing all
-internal groups again, the time behaviour could be exponential.
 
-In this chapter we descrive an algorithm which scans commands only once from
-left to right and buffers at most the information to print a single
-line.
+\paragraph{Basic Idea}
+In order to decide to flatten or to not flatten a group we have to check the
+critierion
+$$
+\fits(a) := i + |a| \le w \land |a| \le r
+$$%
+where $a$ is the active region, $i$ is the indentation of the current line,
+$w$ is the desired maximal line width and $r$ is the desired maximal ribbon
+width.
 
-There are two facts we can exploit to generate a good algorithm.
-\begin{itemize}
-\item Commands in the active region before the first line break in the active
-  group cannot contain an effective line break. Therefore they can be printed
-  immediately without buffering.
+The easiest brute force algorithm is to read the whole active region into a
+buffer and evaluate $\fits(a)$. Such an algorithm would be terribly
+inefficient because the active region might be the whole document and after
+each decision of a group the next active region would have to be evaluated
+which might require a reevaluation of the previous active region.
 
-\item There is no need to scan the whole active region if the commands already
-  scanned exceed the line width. If a prefix of the active region exceeds the
-  line width if flattened, then the whole active region exceeds the line width
-  as well.
-\end{itemize}
-
-
-\paragraph{Definitions}
+There are two facts which make our life easier:
 \begin{enumerate}
-\item The \emph{active group} is first group not yet decided. The active group
-  might contain subgroups which are already decided to be flattened.
+\item If a prefix of the active region already violates the criterion there is
+  no need to scan the whole active region.
 
-\item The first line break contained directly or indirectly in the active
-  group but not in a flattened group is called the \emph{pending line break}.
-
-\item The group of the pending line break is called the \emph{pending group}.
-
-\item The pending group and all its supergroups up to the active groups are
-  called \emph{active groups}. Note that the outermost active group is
-  \emph{the} active group, the others are just active groups.
-
-\item Groups after the pending group are called
-  \emph{pending right groups} regardless if they are within the active group
-  or not.
+\item If the active region satisfies the criterion, then the active region is
+  not longer than a line.
 \end{enumerate}
 %
-The following graphic illustrates the situation on the current line using the
-definitions
-$$%
-  \underbrace{\text{\framebox[8mm][c]{i}}}_\text{indent}
-  \quad\ldots\quad
-  \underbrace{
-    \GS.
-    \underbrace{\GS .
-      \underbrace{L}_\text{pend L} .
-      \GE}_\text{pend grp}
-    \underbrace{\GS \ldots \GE}_\text{pend right grp}
-    . \GE
-  }_\text{active grp}
-  \quad\ldots
-$$%
-Groups in the active group to the left of the pending group are silently
-ignored by the algorithm because they don't have any line breaks (i.e. no
-decisions to be made). The pending line break is the first line break not
-flattened within the active group by definition.
-
-At the start of the algorithm no decisions are made and we are at the
-beginning of the command sequence. The indentation is zero. The first group is
-the active group. There are two modes: \emph{normal mode} and \emph{buffering
-  mode}. The algorithm starts in normal mode.
+I.e. we have to buffer at most a complete line to make a decision for the
+active group.
 
 
-\paragraph{Normal Mode} In normal mode the state consists of the following
+
+
+\paragraph{Normalization}
+Grouping is relevant only for the line breaks within a group, because the line
+break belonging directly to a group must be interpreted consistently
+i.e. either all effective of all flattened. However text blocks are always
+printed, regardless if they belong to a group or not. Therefore we have the
+following equivalences
+$$
+\begin{array}{lll}
+  \ [\![T \ldots]\!] &\sim&  T [\![\ldots]\!]
+  \\
+  \ [\![\ldots]\!] T &\sim&  [\![\ldots T]\!]
+%  [\![\ldots]\!] T &\sim&   [\![\ldots T]\!]
+
+\end{array}
+$$
+%
+The first lets us open groups in the buffer as late as possible and the second
+allows to close groups in the buffer as late as possible.
+
+
+\paragraph{Data of the state} The algorithm works with the following state
 data:
-\begin{description}
-\item[$i$:] Indentation level of the current line.
-\item[$j$:] Indentation level at the current position.
-\item[$p$:] Position on the line.
-\item[$o_e$:] Open effective groups.
-\item[$o_a$:] Open active groups.
-\end{description}
-%
-Clearly at the start of the algorithm all counters are zero. Actions in normal
-mode on encoutering command $c$:
 \begin{enumerate}
+\item $i$: Indentation of the current line.
 
-\item $c = \GS$: Increment $o_a$.
+\item $j$: Current indentation level.
 
-\item $c = \GE$: Decrement $o_a$. Proper nesting is assumed, therefore $o_a
-  \ge 0$ is always valid.
+\item $p$: Position on the current line at the start of the buffer.
 
-\item $c = I_k$: Increment $j$ by $k$ (or decrement in case of negative
-  $k$. Proper nesting is assumed, therefore $j \ge 0$ is valid.
+\item $o_e$: Number of open effective groups
 
-\item $c = T_s$: Print string $s$, update $p$.
+\item $o_a$: Number of open active groups
 
-\item $c = L_s$, $o_a = 0$: Print newline, set $i$ to $j$ and $p$ to $j$.
+\item $o_r$: Number of open groups to the right of the last group in the
+  buffer
 
-\item $c = L_s$, $o_a > 0$ and $s$ does not fit on the current line: All
-  active groups must be decided to be effective. Since there have not yet been
-  and line breaks, it there is no difference between effective and
-  flattening. However according to our definition the groups are
-  effective.
+\item $o_b$: Number of open groups in the buffer (incomplete groups)
 
-  Actions: Print newline, set $i$ to $j$ and $p$ to $j$, increment $o_e$ by
-  $o_a$ and set $o_a$ to zero.
-
-\item $c = L_s$, $o_a > 0$ and $s$ does fit on the current line: Start
-  buffering mode and increment $p$ by the length of $s$, initialize the buffer
-  $b$ with $L_{s,j}$, set $p_e$ to $j$ and $o_{a0}$ to $o_a$ (description of
-  $b$, $p_e$ and $o_{a0}$ see below).
+\item $b = g^\bullet_0 g^\bullet_1 \ldots$: Buffer of incomplete groups
 \end{enumerate}
-
-\paragraph{Buffering Mode} We maintain the following additional data in
-buffering mode.
-\begin{description}
-\item[$p_e$:] Position on the line if all line breaks in the buffer were
-  effective. The counter $p$ is the position on the line if all line breaks in
-  the buffer were flattened.
-
-\item[$o_{a0}$:] Open active groups at the start of buffering mode.
-
-\item[$o_{pr}$:] Open pending right groups (zero at start of buffering mode).
-
-\item[$b$:] Buffer which starts with the pending line break i.e. $b = L_{s,k}
-  \ldots$.
-\end{description}
 %
-At the start of buffering mode we are in the pending group, because the
-encounter of the pending line break which is by definition in the pending
-group triggered the start of buffering mode. We stay in buffering mode until
-we can make a decision. Therefore we can leave the pending group and stay in
-buffering mode.
+with the grammar
+$$
+\begin{array}{lll}
+  g & ::= & [\![ g^* c^* ]\!]
+  \\
+  c & ::= & l\, t^* g^*
+  \\
+  g^\bullet & ::= & [\![ g^* c^*
+\end{array}
+$$
+where $g$ ranges over groups, $g^\bullet$ over incomplete groups,
+$c$ over chunks, $l$ over line breaks and
+$t$ over text blocks. Within the line break we store the alternative text and
+the indentation level valid at the line break.
+
+Because of normalization no group in the buffer will start with a text
+block. All text block starting a group will be pulled out of the
+group. Therefore a group in the buffer can only start with zero or more
+complete inner groups followed by zero or more chunks.
+
+Each chunk of a group starts with a line break belonging directly to the
+group, followed by a sequence of zero or more text blocks, followed by zero or
+more complete groups.
+
+The buffer is a sequence of incomplete groups.
+
+
+
+\paragraph{Actions in buffering mode}
 \begin{itemize}
-\item At the start of buffering mode we are in the pending group. Therefore
-  $o_{a0} > 0$. We stay in the pending group as long as $o_{a0} \le
-  o_a$. Entering inner groups of the pending groups increases $o_a$.
+\item We open the first group only at a line break within the active group. We
+  have to open $o_a$ groups which means we have to open $o_a - 1$ empty groups
+  and the group starting with a line break i.e. having a chunk.
 
-\item If enough groups are closed and the condition $o_a < o_{a0}$ is reached
-  we are to the left of the pending group. If $0 < o_a$ then we are still
-  within the active group. Opening groups and closing groups in this state
-  means entering or leaving groups to the right of the pending groups which
-  means that $o_{pr}$ has to be increased or decreased. Or we might leave an
-  active group in case $o_{pr} = 0$.
+\item A line break with $o_a = 0$ ends buffering mode and the buffer has to be
+  flushed flattening all groups it contains.
 
-\item As soon as the condition $o_a = 0$ is reached we are to the left of
- the active group. Now opening or closing groups must update the counter
- $o_{pr}$ as well.
+\item Another line break within the last group just starts a new chunk in the
+   last group.
+
+ \item Another line break within an inner group of the last group opens
+   $o_a - o_b$ new groups where $o_b$ is the number of open groups in the
+   buffer. The innermost group is the new last group.
+
+
+\item A line break in a group to the right of the last group group (but still
+  inside the active group) closes $o_b - o_a$ groups, and opens $o_r$ groups
+  in the buffer. We set $o_a := o_a + o_r$ and $o_r := 0$.
 \end{itemize}
-Actions on encountering command $c$:
-\begin{enumerate}
-\item $c = \GS$: Update group counter according to the position within the
-  groups
-
-\item $c = \GE$: Update group counter according to the position within the
-  groups
-
-\item $c = I_k$: Update $j$ (same as in normal mode)
-
-\item $c = T_s$:
-  \begin{enumerate}
-  \item $s$ fits: Append $T_s$ to the buffer and update $p$ and $p_e$
-
-  \item $s$ does not fit: All groups enclosing the pending line break
-    (i.e. all active groups) must be made effective. The first group to the
-    right of the pending group becomes the new active group.
-
-    Actions: Flush the buffer, update the group counters, set $p$ to $p_e$ and
-    $i$ to $j$ and process the command in normal mode.
-  \end{enumerate}
-
-\item $c = L_s$ within the pending group:
-  \begin{enumerate}
-  \item $s$ fits: Append $L_{s,j}$ to the buffer, update $p$ and set $p_e$ to
-    $j$.
-
-  \item $s$ does not fit: All groups enclosing the pending line break
-    (i.e. all active groups) must be made effective. There is no new active
-    group because we are still within the pending group.
-
-    Actions: Flush the buffer with all line breaks effective, update the group
-    counters, set $p$ to $p_e$ and $i$ to $j$ and process the command in
-    normal mode.
-  \end{enumerate}
-
-\item $c = L_s$ outside the pending group: The pending group must be
-  flattened. There might be still some active groups open. These groups remain
-  active including the groups to the right of the pending group. If there are
-  no active groups open all groups to the left of the pending group become
-  active groups. I.e. the new open active groups are $o_a + o_{pr}$.
-
-  Actions: Flush the buffer with all line breaks flattened, update the group
-  counters and process the command in normal mode (which might reenter
-  buffering mode immediately).
-\end{enumerate}
-
-
-
-
-
-
 
 
 
 \section{Implementation in Ocaml}
 
-
-\subsection{State}
-
+First some basic data types:
 \begin{ocaml}
-type alternative_text = string
-type indent = int
+  type alternative_text = string
+  type start = int
+  type length = int
+  type indent = int
+  type width  = int
+  type ribbon = int
+  type position = int
+  type open_groups = int
 
-type command =
-  | Text of string
-  | Line of alternative_text * indent
+  module Text =
+    struct
+      type t = {s:string; i0:start; l:length}
+      let make s i0 l = {s;i0;l}
+      let string t = t.s
+      let start t = t.i0
+      let length t = t.l
+    end
 
-module State =
-  struct
-    type open_groups = int
-    type position = int
+  module Line =
+    struct
+      type t = {s:alternative_text; i:indent}
+      let make s i = {s;i}
+      let text (l:t): alternative_text = l.s
+      let length l = String.length l.s
+      let indent l = l.i
+    end
+\end{ocaml}
+%
+Note that we allow text blocks consisting of substrings of a string in order
+to avoid copying of substrings. A line break consists of its alternative text
+and the indentation level valid at the line break.
 
-    type t = {width: int;          (* desired maximal line width *)
-              ribbon: int;         (* desired maximal ribbon width *)
-              mutable line_indent: indent;
-              mutable current_indent: indent;
-              mutable p: position;
-              mutable pe: position; (* all line breaks in pending group
-                                       effective *)
-              mutable oe: open_groups;  (* effective *)
-              mutable oa: open_groups;  (* active *)
-              mutable oa0: open_groups; (* active at pending line break *)
-              mutable opr: open_groups; (* to the right of the pending group *)
-              mutable buf: command list
-             }
+Next we define structures for groups and chunks:
+\begin{ocaml}
+  type chunk = {clen: length;
+                line: Line.t;
+                texts:  Text.t list;
+                cgroups: group list}
+
+  and group = {len:length;
+               groups: group list;
+               chunks: chunk list}
+
+  module Chunk =
+    struct
+      let length (c:chunk): length = c.clen
+      let alternative_text (c:chunk): alternative_text = Line.text c.line
+      let groups (c:chunk): group list = c.cgroups
+      let texts (c:chunk): Text.t list = c.texts
+      let make (line:Line.t): chunk =
+        {clen = Line.length line; line; texts = []; cgroups = []}
+      let add_text (t:Text.t) (c:chunk): chunk =
+        assert (c.cgroups = []);
+        {c with clen = c.clen + t.Text.l; texts = t :: c.texts}
+      let add_group (g:group) (c:chunk): chunk =
+        {c with clen = g.len + c.clen; cgroups = g :: c.cgroups}
+    end
 
 
-    let start  (width:int) (ribbon:int): t =
-      assert (0 <= width);
-      assert (0 <= ribbon);
-      {width; ribbon;
-       current_indent = 0;   line_indent = 0;
-       p = 0;  pe = 0;
-       oe = 0; oa = 0; oa0 = 0; opr = 0;
-       buf = []
+  module Group =
+    struct
+      let length (g:group): length =  g.len
+      let empty = {len = 0; groups = []; chunks = []}
+      let groups (g:group): group list = g.groups
+      let chunks (g:group): chunk list = g.chunks
+      let of_line (l:Line.t): group =
+        let c = Chunk.make l in
+        {len = Chunk.length c; groups = []; chunks = [c]}
+      let add_text (t:Text.t) (g:group): group =
+        match g.chunks with
+        | [] ->
+           assert false (* Illegal call *)
+        | c :: tl ->
+           {g with len = g.len + t.Text.l; chunks = Chunk.add_text t c :: tl}
+      let add_line (l:Line.t) (g:group): group =
+        {g with
+          len = g.len + String.length l.Line.s;
+          chunks = Chunk.make l :: g.chunks}
+      let add_group (gi:group) (go:group): group =
+        let len = go.len + gi.len
+        in
+        match go.chunks with
+        | [] ->
+           {go with len; groups = gi :: go.groups}
+        | c :: cs ->
+           {go with len; chunks = Chunk.add_group gi c :: cs}
+    end
+\end{ocaml}
+%
+For efficiency reasons the length of the groups and chunks are stored within
+the structures and are updated consistently. Furthermore the lists are all
+stored in reverse order in order to easily push additional data into the
+structures.
+
+A buffer consists of a (reversed) list of incomplete groups, the length of the
+whole buffer and the number of open groups within the buffer. The latter two
+are there for efficiency reasons.
+\begin{ocaml}
+  module Buffer =
+    struct
+      type t = {gs: group list;
+                l:  length;
+                o:  open_groups}
+
+      let is_empty (b:t): bool = (b.o = 0)
+      let length (b:t): length = b.l
+      let count (b:t): open_groups = b.o
+      let groups (b:t): group list = b.gs
+      let empty: t =
+        {gs = []; l = 0; o = 0;}
+      let push (g:group) (b:t): t =
+        {gs = g :: b.gs; l = Group.length g + b.l; o = b.o + 1}
+      let one (g:group): t =
+        push g empty
+      let add_text (t:Text.t) (b:t): t =
+        let open Text in
+        match b.gs with
+        | [] ->
+           assert false (* Illegal call *)
+        | g :: tl ->
+           {b with
+             gs = Group.add_text t g :: tl;
+             l  = b.l + t.Text.l}
+      let add_line (l:Line.t) (b:t): t =
+        match b.gs with
+        | [] ->
+           assert false (* Illegal call *)
+        | g :: tl ->
+           {b with
+             gs = Group.add_line l g :: tl;
+             l  = b.l + Line.length l}
+      let open_groups (n:int) (b:t): t =
+        assert (0 <= n);
+        let rec ogs n gs =
+          if n = 0 then
+            gs
+          else
+            Group.empty :: ogs (n-1) gs
+        in
+        {b with o = b.o + n; gs = ogs n b.gs}
+      let close_groups (n:int) (b:t): t =
+        assert (0 <= n);
+        assert (n < b.o);
+        let rec close n gs =
+          if n = 0 then
+            gs
+          else
+            match gs with
+            | gi :: go :: tl ->
+               close
+                 (n-1)
+                 (Group.add_group gi go :: tl)
+            | _ ->
+               assert false (* Illegal call: cannot close group unless there is
+                               one group to which it can be added. *)
+        in
+        {b with o = b.o - n; gs = close n b.gs}
+    end
+\end{ocaml}
+%
+Note that the commands to open and close groups open only and close only empty
+groups so that the total length of the buffer does not change. Only the
+functions to add text and add line breaks add data to the buffer.
+
+
+The pretty printer needs a printing monad with the interface
+\begin{ocaml}
+  module type PRINTER =
+    sig
+      val make:  'a -> 'a t
+      val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+
+      val putc: char -> unit t
+      val put_string: string -> unit t
+      val put_substring: string -> int -> int -> unit t
+      val fill: char -> int -> unit t
+    end
+\end{ocaml}
+to actually print characters, strings etc. and satisfies the monadic interface
+\begin{ocaml}
+  module type PRETTY =
+    sig
+      val make:  'a -> 'a t
+      val (>>=): 'a t -> ('a -> 'b t) -> 'b t
+
+      val text_sub: string -> start -> length -> unit t
+      val text: string -> unit t
+      val line: alternative_text -> unit t
+      val nest: indent -> 'a t -> unit t
+      val group: 'a t -> unit t
+    end
+\end{ocaml}
+%
+The pretty printing module is a functor with the structure
+\begin{ocaml}
+  module Make:
+    functor (P:PRINTER) ->
+    sig
+      include PRETTY
+      val run: indent -> width -> ribbon -> 'a t -> unit P.t
+    end =
+    functor (P:PRINTER) ->
+    struct
+      type state = ... (* see below *)
+
+      type 'a t = state -> 'a P.t
+      let make (a:'a) (st:state): 'a P.t = P.make a
+      let (>>=) (m:'a t) (f:'a -> 'b t) (st:state): 'b P.t =
+        P.(m st >>= fun a -> f a st)
+    ...
+    end
+\end{ocaml}
+%
+Now we define the type for the state and some functions accessing the state.
+\begin{ocaml}
+    type state = {
+        width: int;                (* desired maximal line width *)
+        ribbon: int;               (* desired maximal ribbon width *)
+        mutable line_indent: indent;
+        mutable current_indent: indent;
+        mutable p: position;       (* on current line at start of buffer *)
+        mutable oe:  open_groups;  (* effective *)
+        mutable oa:  open_groups;  (* active *)
+        mutable o_r: open_groups;  (* to the right of the last open group in
+                                      buffer *)
+        mutable b: Buffer.t
       }
 
-    let normal (st:t): bool    = st.buf = []
 
-    let buffering (st:t): bool = st.buf <> []
+    let init (i:indent) (width:int) (ribbon:int): state =
+      {line_indent = i; current_indent = i;
+       width; ribbon;
+       p = i;
+       oe = 0; oa = 0; o_r = 0;
+       b = Buffer.empty}
 
-    let is_active_open (st:t): bool =
-      (* Is there still a group enclosing the pending line break open? *)
-      st.oa > 0
+    let normal (st:state): bool =
+      Buffer.is_empty st.b
 
-    let is_pending_open (st:t): bool =
-      (* Is the group of the pending line break still open? *)
-      assert (0 < st.oa0);
-      let res = st.oa0 <= st.oa in
-      if res then
-        (assert (st.opr = 0); assert (st.oa > 0));
-      res
+    let buffering (st:state): bool =
+      not (Buffer.is_empty st.b)
 
-    let fits (len:int) (st:t): bool =
-      let newpos = st.p + len
-      in
-      newpos <= st.width && newpos - st.line_indent <= st.ribbon
+    let fits_pos (p:position) (st:state): bool =
+      p <= st.width
+      && p - st.line_indent <= st.ribbon
 
-    let out_text(len:length) (st:t): unit =
+    let fits (len:int) (st:state): bool =
+      fits_pos (st.p + (Buffer.length st.b) + len) st
+
+    let buffer_fits (st:state): bool =
+      fits 0 st
+
+    let active_to_effective (st:state): unit =
+      (* Make all active groups effective *)
       assert (normal st);
-      st.p <- st.p + len
-
-    let out_line (st:t): unit =
-      assert (normal st);
-      assert (st.oa = 0);  (* Otherwise we must start buffering. *)
-      assert (st.opr = 0); (* There is no active group. *)
-      st.p <- st.current_indent;
-      st.line_indent <- st.current_indent
-
-    let active_to_effective (st:t): unit =
-      assert (normal st);
-      assert (st.opr = 0);
-      assert (st.oa0 = 0);
       st.oe <- st.oe + st.oa;
       st.oa <- 0
+\end{ocaml}
+%
+Some basic processing functions
+\begin{ocaml}
+    let state (st:state): state P.t =
+      P.make st
 
-    let start_buffering (s:alternative_text) (st:t): unit =
-      assert (normal st);
-      assert (0 < st.oa);
-      let len = String.length s in
-      assert (fits len st);
-      st.buf <- Line (s, st.current_indent) :: st.buf;
-      st.oa0 <- st.oa;
+    let print_nothing: unit P.t =
+      P.make ()
+
+    let print_list (l:'a list) (f:'a -> unit t): unit t =
+      List.fold_right
+        (fun a pr -> pr >>= fun _ -> f a)
+        l (make ())
+
+    let out_text (s:string) (start:start) (len:length) (st:state): unit P.t =
       st.p <- st.p + len;
-      st.pe <- st.current_indent
+      P.put_substring s start len
 
-    let flush (flatten:bool) (st:t): command list =
-      assert (buffering st);
-      if flatten then
-        (assert (not (is_pending_open st));
-         st.oa <- st.oa + st.opr;
-         st.opr <- 0;
-         st.oa0 <- 0)
-      else
-        ( (* All open groups enclosing the pending line break (the active
-             groups) become effective, all groups to the right of the pending
-             group become the new active groups. *)
-          st.oe <- st.oe + st.oa;
-          st.oa <- st.opr;
-          st.opr <- 0;
-          st.oa0 <- 0;
-          (* update p and line_indent *)
-          st.p   <- st.pe;
-          st.line_indent <- st.current_indent);
-      let buf = List.rev st.buf in
-      st.buf <- [];
-      buf
+    let rec out_texts (l:Text.t list): unit t =
+      print_list
+        l
+        (fun t ->
+          let open Text in
+          out_text t.s t.i0 t.l)
 
-    let buffer_text (s:string) (st:t): unit =
-      assert (buffering st);
-      assert (fits (String.length s) st);
-      st.buf <- Text s :: st.buf;
-      st.p <- st.p + len;
-      st.pe <- st.pe + len
+    let out_alternative_text (l:Line.t): unit t =
+      let s = Line.text l in
+      out_text s 0 (String.length s)
 
-    let buffer_line (s:alternative_text) (st:t): unit =
-      assert (buffering st);
-      let len = String.length s in
-      assert (fits len st);
-      assert (is_pending_open st);
-      st.buf <- Line (s,st.current_indent) :: st.buf;
-      st.p   <- st.p + len;
-      st.pe  <- st.current_indent
+    let out_line (i:indent) (st:state): unit P.t =
+      st.p <- i;
+      st.line_indent <- i;
+      P.(putc '\n' >>= fun _ -> fill ' ' i)
 
-    let increment_indent (i:indent) (st:t): unit =
-      st.current_indent <- st.current_indent + i
-
-    let decrement_indent (i:indent) (st:t): unit =
-      assert (i <= st.current_indent);
-      st.current_indent <- st.current_indent - i
-
-    let open_group (st:t): unit =
-      if normal st then
-        (assert (st.opr = 0); st.oa <- st.oa + 1)
-      else (* buffering *)
-        if is_pending_open st then
-          st.oa <- st.oa + 1
-        else
-          st.opr <- st.opr + 1
-
-    let close_group (st:t): unit =
-      if normal st then
-        (assert (st.opr = 0);
-         if st.oa > 0 then
-           st.oa <- st.oa - 1
-         else
-           (assert (st.oe > 0); st.oe <- st.oe - 1)
-        )
-      else (* buffering *)
-        if is_pending_open st then
-          st.oa <- st.oa - 1
-        else if st.opr > 0 then
-          st.opr <- st.opr - 1
-        else
-          (assert (st.oa > 0); st.oa <- st.oa - 1)
-  end (* State *)
-\end{ocaml}
-
-
-
-
-\subsection{Pretty Printing Monad}
-
-For the pretty printing monad we need a printer monad with the signature
-\begin{ocaml}
-module type PRINTER =
-  sig
-    type 'a t
-    val make: 'a -> 'a t
-    val (>>=): 'a t -> ('a -> 'b t) -> 'b t
-
-    val putc: char -> unit t
-    val put_string: string -> unit t
-    val fill: char -> int -> unit t
-  end
-\end{ocaml}
-%
-%
-The pretty printing monad is a module with the signature
-\begin{ocaml}
-module type PRETTY =
-  functor (P:PRINTER) ->
-  sig
-    type 'a t
-    val make: 'a -> 'a t
-    val (>>=): 'a t -> ('a -> 'b t) -> 'b t
-
-    val text: string -> unit t
-    val line: alternative_text -> unit t
-    val nest: indent -> 'a t -> unit t
-    val group: 'a t -> unit t
-    val run:  int -> int -> 'a t -> unit P.t
-  end
-
-\end{ocaml}
-%
-%
-The implementation of the pretty printing monad:
-\begin{ocaml}
-module Make: PRETTY
-  =
-  functor (P:PRINTER) ->
-  struct
-    type state = State.t
-
-    type 'a t = state -> 'a P.t
-
-    let make (a:'a): 'a t = fun st -> P.make a
-
-    let (>>=) (m:'a t) (f:'a -> 'b t) (st:state): 'b P.t =
-      P.(m st >>= fun a -> f a st)
-
-    let print_nothing: unit P.t = P.make ()
-
-    let out_command (flatten:bool) (c:command): unit P.t =
-      match c with
-      | Text s ->
-         P.put_string  s
-      | Line (s, i) ->
-         if flatten then
-           P.put_string s
-         else
-           P.(putc '\n' >>= fun _ -> fill ' ' i)
-
-    let out_text (len:length) (s:string) (st:state): unit P.t =
-      State.out_text len st; P.put_string s
-
-
-    let flush (flatten:bool) (st:state): unit P.t =
-      let buf = State.flush flatten st in
-      let rec write buf =
-        match buf with
-        | [] ->
-           assert false (* buffer cannot be empty *)
-        | [c] ->
-           out_command flatten c
-        | c :: buf ->
-           P.(out_command flatten c >>= fun _ -> write buf)
-      in
-      write buf
-
-    let text (s:string) (st:state): unit P.t =
-      let len = String.length s
-      in
-      if State.normal st then
-        out_text len s st
-      else if State.fits len st then
-        (State.buffer_text s st; print_nothing)
-      else
-        (flush false >>= fun _ -> out_text len s) st
 
     let line_normal (s:alternative_text) (st:state): unit P.t =
-      assert (State.normal st);
-      let len = String.length s
+      assert (normal st);
+      assert (Buffer.is_empty st.b);
+      if 0 < st.oa && fits (String.length s) st then
+        (* Start buffering *)
+        (st.b <-
+           Buffer.open_groups st.oa st.b
+           |>  Buffer.add_line (Line.make s st.current_indent);
+         st.o_r <- 0;
+         print_nothing)
+      else
+        (active_to_effective st;
+         out_line st.current_indent st)
+\end{ocaml}
+%
+Next we need some functions to print the buffer's content in flattened mode.
+\begin{ocaml}
+    let rec flush_flatten_group (g:group): unit t =
+      flush_flatten_groups g.groups >>= fun _ ->
+      flush_flatten_chunks g.chunks
+
+    and flush_flatten_groups (gs:group list): unit t =
+      List.fold_right
+        (fun g pr -> pr >>= fun _ -> flush_flatten_group g)
+        gs
+        (make ())
+
+    and flush_flatten_chunks (cs:chunk list): unit t =
+      print_list cs flush_flatten_chunk
+
+    and flush_flatten_chunk (c:chunk): unit t =
+      out_alternative_text c.line >>= fun _ ->
+      out_texts c.texts >>= fun _ ->
+      flush_flatten_groups c.cgroups
+
+    let flush_flatten: unit t =
+      state >>= fun st ->
+      print_list (Buffer.groups st.b) flush_flatten_group >>= fun _ ->
+      st.b <- Buffer.empty;
+      make ()
+\end{ocaml}
+%
+Complete groups at the start of the buffer can be decided immediately and
+flushed by the functions
+\begin{ocaml}
+    let rec flush_group (g:group) (st:state): unit P.t =
+      (* complete group *)
+      if fits (Group.length g) st then
+        flush_flatten_group g st
+      else
+        st
+        |> (flush_groups g.groups >>= fun _ ->
+            flush_chunks g.chunks)
+    and flush_chunk (c:chunk): unit t =
+      out_line (Line.indent c.line) >>= fun _ ->
+      out_texts c.texts >>= fun _ ->
+      flush_groups c.cgroups
+    and flush_groups (gs:group list): unit t =
+      print_list gs flush_group
+    and flush_chunks (cs:chunk list): unit t =
+      print_list cs flush_chunk
+\end{ocaml}
+If the buffer does not fit on a line the following function can be used to
+flush groups until the rest of the buffer fits.
+\begin{ocaml}
+    let flush_effective (st:state): unit P.t =
+      (* Flush open groups until buffer fits or is empty. *)
+      let flush_incomplete o g st =
+        if 0 < st.oa then
+          (st.oa <- st.oa - 1;
+           st.oe <- st.oe + 1)
+        else if o = 0 then
+          (* The last incomplete group in the buffer is flushed as well, all
+             open groups to the left of the last group become new active
+             groups. *)
+          (st.oa <- st.o_r;
+           st.o_r <- 0);
+        (flush_groups g.groups >>= fun _ ->
+         flush_chunks g.chunks) st
       in
-      if State.is_active_open st && State.fits len st then
-        (State.start_buffering s st; print_nothing)
+      let rec flush l o gs st =
+        match gs with
+        | [] ->
+           assert false (* Illegal call *)
+        | [g] ->
+           assert (not (fits (Group.length g + l) st));
+           (* If the first group fitted, then there would be no need to flush
+              the group as effective. *)
+           flush_incomplete o g st
+        | g :: gs ->
+           let len =  Group.length g + l in
+           P.(flush len (o+1) gs st >>= fun _ ->
+              if fits len st then
+                (st.b <- Buffer.push g st.b;
+                 print_nothing)
+              else
+                (assert (Buffer.is_empty st.b);
+                 flush_incomplete o g st))
+      in
+      let gs = Buffer.groups st.b in
+      st.b <- Buffer.empty;
+      flush 0 0 gs st
+\end{ocaml}
+The rest are some straightforward functions to implement the commands for text
+blocks, line breaks, nesting and groups
+\begin{ocaml}
+    let text_sub (s:string) (start:int) (len:int) (st:state): unit P.t =
+      assert (0 <= start);
+      assert (start+len <= String.length s);
+      if normal st then
+        out_text s start len st
       else
-        (State.active_to_effective st;
-         State.out_line st;
-         P.(putc '\n' >>= fun _ ->
-            fill ' ' st.State.line_indent))
+        (st.b <- Buffer.add_text (Text.make s start len) st.b;
+         if buffer_fits st then
+           print_nothing
+         else
+           flush_effective st)
 
-    let line_buffering (s:alternative_text) (st:state): unit P.t =
-      assert (State.buffering st);
-      if State.is_pending_open st then
-        if State.fits (String.length s) st then
-          (State.buffer_line s st; print_nothing)
-        else
-          (flush false >>= fun _ -> line_normal s) st
-      else
-        (flush true >>= fun _ -> line_normal s) st
+    let text (s:string): unit t =
+      text_sub s 0 (String.length s)
 
-    let line (s:string) (st:state): unit P.t =
-      if State.normal st then
+    let rec line (s:alternative_text) (st:state): unit P.t =
+      if normal st then
         line_normal s st
+      else if 0 < st.oa then
+        (* Still inside the active group. *)
+        (let o = Buffer.count st.b in
+         if st.oa <= o then
+           st.b <- Buffer.close_groups (o - st.oa) st.b;
+         st.b <-
+           (let n = if o < st.oa then st.oa - o else st.o_r in
+            Buffer.open_groups n st.b
+            |> Buffer.add_line (Line.make s st.current_indent));
+         st.oa  <- st.oa + st.o_r;
+         st.o_r <- 0;
+         if buffer_fits st then
+           print_nothing
+         else
+           flush_effective st
+        )
       else
-        line_buffering s st
+        (* Outside the active group. *)
+        (assert (buffer_fits st);
+         st.oa <- st.o_r;
+         st.o_r <- 0;
+         st |> (flush_flatten >>= fun _ -> line s))
 
     let nest (i:int) (m:'a t): unit t =
-      let start st = State.increment_indent i st; print_nothing
-      and close st = State.decrement_indent i st; print_nothing
+      let start st =
+        st.current_indent <- st.current_indent + i;
+        print_nothing
+      and close st =
+        assert (i <= st.current_indent);
+        st.current_indent <- st.current_indent - i;
+        print_nothing
       in
       start >>= fun _ -> m >>= fun _ -> close
 
     let group (m:'a t): unit t =
-      let start st = State.open_group st;  print_nothing
-      and close st = State.close_group st; print_nothing
+      let start st =
+        if st.oa < Buffer.count st.b then
+          st.o_r <- st.o_r + 1
+        else
+          st.oa <- st.oa + 1;
+        print_nothing
+      and close st =
+        if 0 < st.o_r then
+          (assert (st.oa < Buffer.count st.b);
+           st.o_r <- st.o_r - 1)
+        else if 0 < st.oa then
+           st.oa <- st.oa - 1
+        else
+          (assert (0 < st.oe);
+           st.oe <- st.oe - 1);
+        print_nothing
       in
-      start >>= fun _ -> m >>= fun _ -> close
-
-    let run (width:int) (ribbon:int) (m:'a t): unit P.t =
-      let st = State.start width ribbon in
+      start >>= fun _ ->
+      m >>= fun _ ->
+      close
+\end{ocaml}
+%
+And finally we define a function to run the pretty printing monad with a
+specific start indentation a line width and a ribbon width
+\begin{ocaml}
+    let run (indent:int) (width:int) (ribbon:int) (m:'a t): unit P.t =
+      let st = init indent width ribbon in
       P.(m st >>= fun _ ->
-         if State.buffering st then
-           flush true st
+         if buffering st then
+           flush_flatten st
          else
            print_nothing)
-  end
 \end{ocaml}
+
+For completeness we include an example of a printer monad which prints all
+output to a certain output channel
+\begin{ocaml}
+  module Printer:
+  sig
+    include PRINTER
+    val run: out_channel -> 'a t -> 'a
+  end =
+    struct
+      type 'a t = out_channel -> 'a
+      let make (a:'a) (oc:out_channel): 'a = a
+      let (>>=) (m:'a t) (f:'a -> 'b t) (oc:out_channel): 'b =
+        f (m oc) oc
+      let putc (c:char) (oc:out_channel): unit =
+        output_char oc c
+      let fill (c:char) (n:int) (oc:out_channel): unit =
+        for i = 0 to n - 1 do
+          output_char oc c
+        done
+      let put_substring (s:string) (i0:start) (l:length) (oc:out_channel): unit =
+        for i = i0 to i0 + l - 1 do
+          output_char oc s.[i]
+        done
+      let put_string (s:string) (oc:out_channel): unit =
+        put_substring s 0 (String.length s) oc
+      let run (oc:out_channel) (m:'a t): 'a =
+        m oc
+    end
+\end{ocaml}
+
+
 
 
 \begin{thebibliography}{99}

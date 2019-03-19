@@ -64,15 +64,43 @@
 
 \maketitle
 
-\abstract{ }
+\abstract{A pretty printing algorithm is described which is suitable to be
+  implemented in any strict language. An example implementation in Ocaml is
+  given. }
 
 
 \tableofcontents
 
 
 
+\section{Introduction}
 
+Pretty printing is the inverse of parsing. Parsing breaks up a sequence of
+characters (or tokens) into a syntax tree, pretty printing formats a tree
+structured document into a stream of characters. A pretty printer shall format
+the output in a way to make it as readable as possible i.e. to add line breaks
+and indentation to make the structure of the document visible.
 
+As opposed to parsing, pretty printing is not covered a lot in the computer
+science literature. Pretty printing is mainly addressed in articles describing
+the implementation of a pretty printer in a lazily evaluated languages like
+Miranda or Haskell e.g. in Hughes(1995)~\cite{hughes1995} or
+Wadler(2003)~\cite{wadler}.
+
+Lazy evaluation allows a very elegant formulation of pretty printing. However
+lazy evaluation has the drawback that it is easy to generate stack overflows
+or deadlocks. It requires a lot of experience to get complex algorithms right
+in lazily evaluated languages, even very experienced programmers sometime step
+into the pitfalls of lazy evaluation.
+
+Furthermore an algorithm written for lazy evaluation, if executed strictly,
+might be very inefficient. For this reason a pretty printing algorithm is
+needed which performs well in strict languages.
+
+In this article a state based pretty printing algorithm is described which can
+be proved to be correct and efficient in strict languages and an example
+implementation is given in Ocaml. The algorithm makes the same formatting
+decisions as the algorithm described in Wadler(2003)~\cite{wadler}.
 
 
 \section{Examples}

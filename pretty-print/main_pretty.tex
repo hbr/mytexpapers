@@ -15,7 +15,8 @@
 \def\IE{\text{IE}}
 \def\Natural{\text{Natural}}
 
-\newcommand{\group}[1]{\GS #1 \GE}
+\def\group#1{\GS #1 \GE}
+%\newcommand{\group}[1]{\GS #1 \GE}
 \newcommand{\flatten}[1]{\overline{#1}}
 
 %Double Brackets
@@ -668,7 +669,7 @@ flattened. We get the complete selection string $E F F$ and the layout
 
 \paragraph{Basic Idea}
 In order to decide to flatten or to not flatten a group we have to check the
-critierion
+criterion
 $$
 \fits(a) := i + |a| \le w \land |a| \le r
 $$%
@@ -704,17 +705,33 @@ i.e. either all effective of all flattened. However text blocks are always
 printed, regardless if they belong to a group or not. Therefore we have the
 following equivalences
 $$
+%
 \begin{array}{lll}
   \ [\![T \ldots]\!] &\sim&  T [\![\ldots]\!]
   \\
   \ [\![\ldots]\!] T &\sim&  [\![\ldots T]\!]
-%  [\![\ldots]\!] T &\sim&   [\![\ldots T]\!]
-
 \end{array}
 $$
 %
 The first lets us open groups in the buffer as late as possible and the second
 allows to close groups in the buffer as late as possible.
+
+The following example demonstrates the normalization.
+$$
+\begin{array}{lll}
+  \group {T T L \group{T} T L T}
+  %
+  &\sim& T \group {T L \group{T} T L T}
+  \\
+  &\sim& T T \group{L \group{T} T L T}
+  \\
+  &\sim& T T \group{L T \group{} T L T}
+  \\
+  &\sim& T T \group{L T \group{T} L T}
+  \\
+  &\sim& \underbrace{T T \group{L T T \group{} L T}}_\text{normalized}
+\end{array}
+$$
 
 
 \paragraph{Data of the state} The algorithm works with the following state
@@ -754,7 +771,7 @@ $t$ over text blocks. Within the line break we store the alternative text and
 the indentation level valid at the line break.
 
 Because of normalization no group in the buffer will start with a text
-block. All text block starting a group will be pulled out of the
+block. All text blocks starting a group will be pulled out of the
 group. Therefore a group in the buffer can only start with zero or more
 complete inner groups followed by zero or more chunks.
 
